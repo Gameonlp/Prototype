@@ -34,7 +34,7 @@ public class Sword extends Weapon{
         target.reduceHealth(baseDamage);
         try {
             sounds.get(sounds.size() - random.nextInt(sounds.size() + 1)).play();
-        } catch (GdxRuntimeException e){
+        } catch (IndexOutOfBoundsException e){
             // Asset did not exist
         }
     }
