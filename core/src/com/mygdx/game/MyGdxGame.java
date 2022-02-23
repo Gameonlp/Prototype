@@ -58,6 +58,8 @@ public class MyGdxGame extends ApplicationAdapter implements InputProcessor {
 	private Texture attack;
 	private Texture close;
 
+	int turnPlayer = 0;
+
 	int[] lastClick;
 
 	public MyGdxGame(){
@@ -97,23 +99,23 @@ public class MyGdxGame extends ApplicationAdapter implements InputProcessor {
 	public void create () {
 		batch = new SpriteBatch();
 		font = new BitmapFont();
-		current = GameMap.loadMap("maps/test.map");
+		current = GameMap.loadMap(Gdx.files.internal("maps/test.map").path());
 		unitPositions = new HashMap<>();
 		units = new LinkedList<>();
-		Unit character = new Unit(1, "textures/Character.png", 5, 5, new Sword(2), 1,1,true, false, false);
+		Unit character = new Unit(0, "textures/Character.png", 5, 5, new Sword(2), 1,1,true, false, false);
 		units.add(character);
-		Unit punchingBag = new Unit(2, "textures/Character.png", 5, 5, new Sword(2), 6,8,true, false, false);
+		Unit punchingBag = new Unit(1, "textures/Character.png", 5, 5, new Sword(2), 6,8,true, false, false);
 		units.add(punchingBag);
 
-		startButton = new Texture("textures/Start.png");
-		editorButton = new Texture("textures/Editor.png");
-		configButton = new Texture("textures/Config.png");
-		exitButton = new Texture("textures/Exit.png");
+		startButton = new Texture(Gdx.files.internal("textures/Start.png"));
+		editorButton = new Texture(Gdx.files.internal("textures/Editor.png"));
+		configButton = new Texture(Gdx.files.internal("textures/Config.png"));
+		exitButton = new Texture(Gdx.files.internal("textures/Exit.png"));
 
-		undo = new Texture("textures/undo.png");
-		next = new Texture("textures/next.png");
-		attack = new Texture("textures/attack.png");
-		close = new Texture("textures/close.png");
+		undo = new Texture(Gdx.files.internal("textures/Undo.png"));
+		next = new Texture(Gdx.files.internal("textures/Next.png"));
+		attack = new Texture(Gdx.files.internal("textures/Attack.png"));
+		close = new Texture(Gdx.files.internal("textures/Close.png"));
 
 		Gdx.input.setInputProcessor(this);
 		LOGGER.setLevel(Logger.DEBUG);
@@ -157,33 +159,46 @@ public class MyGdxGame extends ApplicationAdapter implements InputProcessor {
 						unitPositions.put(new Point(unit.getPositionX(), unit.getPositionY()), unit);
 					}
 					Unit unit = unitPositions.get(clickedTile(lastClick));
-					System.out.println(unit);
 					if (unit != null
 							&& lastClick[3] == Input.Buttons.LEFT && unit.getMovePoints() > 0) {
-						range = new Range(current, unitPositions, unit.getMovePoints(), unit.getPositionX(), unit.getPositionY(), true, false, false, 1);
+						range = new Range(current, unitPositions, unit.getMovePoints(), unit.getPositionX(), unit.getPositionY(), true, false, false, unit.getOwner());
 						color = Color.GREEN;
 						primarySelection = unit;
 						gameState.transition("click");
+						System.out.println(unit);
 					} else if (unit != null
 							&& lastClick[3] == Input.Buttons.RIGHT) {
 						gameState.transition("context");
-						contextMenu = new ContextMenu(lastClick[0], lastClick[1], batch, attack, close) {
-							@Override
-							public void clickMenu(int x, int y) {
-								switch (this.getClickedButton(x, y)) {
-									case 0:
-										range = new Range(current, unitPositions, unit.getWeapon().getMinDistance(), unit.getWeapon().getMaxDistance(),
-												unit.getPositionX(), unit.getPositionY(), true, false, false, true);
-										color = Color.BLUE;
-										selector = target -> target.getOwner() != 1;
-										game.transition("target");
-										break;
-									case 1:
-										gameState.transition("close");
-										break;
+						if (!unit.hasAttacked()) {
+							contextMenu = new ContextMenu(lastClick[0], lastClick[1], batch, attack, close) {
+								@Override
+								public void clickMenu(int x, int y) {
+									switch (this.getClickedButton(x, y)) {
+										case 0:
+											primarySelection = unit;
+											range = new Range(current, unitPositions, unit.getWeapon().getMinDistance(), unit.getWeapon().getMaxDistance(),
+													unit.getPositionX(), unit.getPositionY(), true, false, false, true, unit.getOwner());
+											color = Color.BLUE;
+											selector = unit.getWeapon().target(turnPlayer);
+											game.transition("target");
+											break;
+										case 1:
+											gameState.transition("close");
+											break;
+									}
 								}
-							}
-						};
+							};
+						} else {
+							contextMenu = new ContextMenu(lastClick[0], lastClick[1], batch, close) {
+								@Override
+								public void clickMenu(int x, int y) {
+									if (this.getClickedButton(x, y) == 0) {
+										gameState.transition("close");
+									}
+								}
+							};
+
+						}
 						lastClick = null;
 					} else if (unit == null && lastClick[3] == Input.Buttons.RIGHT){
 						gameState.transition("context");
@@ -199,10 +214,12 @@ public class MyGdxGame extends ApplicationAdapter implements InputProcessor {
 										break;
 									case 1:
 										for (Unit unit : units) {
-											// TODO check owner
-											unit.endTurn();
+											if (unit.getOwner() == turnPlayer) {
+												unit.endTurn();
+											}
 										}
 										commands.clear();
+										turnPlayer = (1 + turnPlayer) % 2;//TODO move numPlayers into map
 										gameState.transition("close");
 										break;
 									case 2:
@@ -214,7 +231,7 @@ public class MyGdxGame extends ApplicationAdapter implements InputProcessor {
 						lastClick = null;
 					}
 				} else if (gameSelected.equals(gameState.getCurrent().getCurrent())){
-					if (primarySelection.getOwner() == 1 && range.getDistance(lastClick[0] / 64, (1080 - lastClick[1]) / 64) >= 0
+					if (primarySelection.getOwner() == turnPlayer && range.getDistance(lastClick[0] / 64, (1080 - lastClick[1]) / 64) >= 0
 							&& range.getDistance(lastClick[0] / 64, (1080 - lastClick[1]) / 64) < Integer.MAX_VALUE
 							&& lastClick[3] == Input.Buttons.LEFT) {
 						range = null;
@@ -246,7 +263,8 @@ public class MyGdxGame extends ApplicationAdapter implements InputProcessor {
 			if (gameBattle.equals(gameState.getCurrent().getCurrent())){
 				//TODO battle animation
 				commands.clear();
-				primarySelection.getWeapon().dealDamage(primarySelection, secondarySelection);
+				primarySelection.dealDamage(secondarySelection);
+
 				for (Unit unit : units){
 					if (unit.getHealth() <= 0){
 						//TODO destroy animation
@@ -312,15 +330,27 @@ public class MyGdxGame extends ApplicationAdapter implements InputProcessor {
 		}
 		for (Unit unit : units) {
 			int distance = Integer.MAX_VALUE;
+			switch (unit.getOwner()){
+				case 0:
+					batch.setColor(Color.GREEN);
+					break;
+				case 1:
+					batch.setColor(Color.RED);
+					break;
+			}
 			if (range != null) {
 				distance = range.getDistance(unit.getPositionX(), height - unit.getPositionY() - 1);
 			}
 			if (selector != null && distance < Integer.MAX_VALUE && distance >= 0 && selector.select(unit)) {
 				batch.setColor(color);
 			}
+			if (unit.hasAttacked()){
+				batch.setColor(Color.GRAY);
+			}
 			batch.draw(unit.getTexture(), unit.getPositionX() * 64,unit.getPositionY() * 64, 64, 64);
 			batch.setColor(Color.WHITE);
 		}
+		//TODO add round Counter
 	}
 
 	@Override

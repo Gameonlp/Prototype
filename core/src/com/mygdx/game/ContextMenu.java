@@ -13,7 +13,6 @@ public abstract class ContextMenu {
     public ContextMenu(int x, int y, SpriteBatch batch, Texture... textures){
         this.x = Math.min(x, 1920 - 100);
         this.y = Math.max(y, 50 * textures.length);
-        System.out.println("X: " + x + ", Y: " + y);
         this.batch = batch;
         this.textures = textures;
     }

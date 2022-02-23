@@ -1,10 +1,12 @@
 package com.mygdx.game.units;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
 import com.mygdx.game.UndoableCommand;
 import com.mygdx.game.weapons.Weapon;
 
 public class Unit {
+    private boolean hasAttacked;
     private int owner;
     private Texture texture;
     private int healthPoints;
@@ -20,7 +22,7 @@ public class Unit {
 
     public Unit(int owner, String texturePath, int healthPoints, int movePoints, Weapon weapon, int positionX, int positionY, boolean canWalk, boolean canFly, boolean canSwim){
         this.owner = owner;
-        this.texture = new Texture(texturePath);
+        this.texture = new Texture(Gdx.files.internal(texturePath));
         this.healthPoints = healthPoints;
         this.maxHealthPoints = healthPoints;
         this.movePoints = movePoints;
@@ -31,6 +33,7 @@ public class Unit {
         this.canFly = canFly;
         this.canWalk = canWalk;
         this.canSwim = canSwim;
+        this.hasAttacked = false;
     }
 
     public UndoableCommand move(int x, int y){
@@ -59,10 +62,12 @@ public class Unit {
 
     public void endTurn(){
         movePoints = maxMovePoints;
+        hasAttacked = false;
     }
 
     public void destroy(){
         texture.dispose();
+        weapon.destroy();
     }
 
     public Texture getTexture() {
@@ -101,11 +106,42 @@ public class Unit {
         return weapon;
     }
 
+    public void dealDamage(Unit target){
+        this.hasAttacked = true;
+        System.out.println(this);
+        System.out.println(target);
+        weapon.dealDamage(this, target);
+        this.movePoints = 0;
+    }
+
     public int getOwner() {
         return owner;
     }
 
     public int getHealth() {
         return healthPoints;
+    }
+
+    public boolean hasAttacked() {
+        return hasAttacked;
+    }
+
+    @Override
+    public String toString() {
+        return "Unit{" +
+                "hasAttacked=" + hasAttacked +
+                ", owner=" + owner +
+                ", texture=" + texture +
+                ", healthPoints=" + healthPoints +
+                ", maxHealthPoints=" + maxHealthPoints +
+                ", movePoints=" + movePoints +
+                ", maxMovePoints=" + maxMovePoints +
+                ", positionX=" + positionX +
+                ", positionY=" + positionY +
+                ", canFly=" + canFly +
+                ", canWalk=" + canWalk +
+                ", canSwim=" + canSwim +
+                ", weapon=" + weapon +
+                '}';
     }
 }

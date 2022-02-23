@@ -147,6 +147,9 @@ public class HierarchicalStateMachine {
         } else if (current != null){
             current.transition(input);
         }
+        if (SettingsManager.getInstance().getBooleanSetting("DebugPrintStates")) {
+            System.out.println(current);
+        }
     }
 
     private void leaveState() {

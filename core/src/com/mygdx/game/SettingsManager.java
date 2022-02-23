@@ -21,6 +21,7 @@ public class SettingsManager {
 
     private void loadSettings(){
         booleanSettings.put("DebugShowDistances", true);
+        booleanSettings.put("DebugPrintStates", true);
     }
 
     public boolean getBooleanSetting(String name){

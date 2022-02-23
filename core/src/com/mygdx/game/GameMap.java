@@ -17,9 +17,9 @@ public class GameMap {
     private static final Tile[] tileAtlas = new Tile[256];
 
     static {
-        tileAtlas[0] = new Tile("textures/black.png",false, false, false, false);
-        tileAtlas[1] = new Tile("textures/grey.png",false, false, false, false);
-        tileAtlas[2] = new Tile("textures/tile.png",true, false, false, false);
+        tileAtlas[0] = new Tile("textures/Black.png",false, false, false, false);
+        tileAtlas[1] = new Tile("textures/Grey.png",false, false, false, false);
+        tileAtlas[2] = new Tile("textures/Tile.png",true, false, false, false);
     }
 
     private GameMap(int width, int height, Tile[] map, HashMap<Tile, Texture> uniqueTextures){
@@ -57,7 +57,7 @@ public class GameMap {
                 for(int i = 0; i < width; i++){
                     Tile tile = tileAtlas[Integer.parseInt(entries[i])];
                     map[width * lineNumber + i] = tile;
-                    uniqueTextures.put(tile, new Texture(tile.texturePath));
+                    uniqueTextures.put(tile, new Texture(Gdx.files.internal(tile.texturePath)));
                 }
                 lineNumber++;
             }

@@ -59,7 +59,6 @@ public class Range {
     }
 
     private int[] calculateRange(){
-        System.out.println(maxDistance);
         int height = map.getHeight();
         int width = map.getWidth();
         reachable = new int[height * width];
