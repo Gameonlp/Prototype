@@ -11,6 +11,7 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.utils.Logger;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.mygdx.game.units.Unit;
+import com.mygdx.game.weapons.Bow;
 import com.mygdx.game.weapons.Sword;
 
 import java.util.*;
@@ -102,10 +103,10 @@ public class MyGdxGame extends ApplicationAdapter implements InputProcessor {
 		current = GameMap.loadMap(Gdx.files.internal("maps/test.map").path());
 		unitPositions = new HashMap<>();
 		units = new LinkedList<>();
-		Unit character = new Unit(0, "textures/Character.png", 5, 5, new Sword(2), 1,1,true, false, false);
-		units.add(character);
-		Unit punchingBag = new Unit(1, "textures/Character.png", 5, 5, new Sword(2), 6,8,true, false, false);
-		units.add(punchingBag);
+		units.add(new Unit(0, "textures/Character.png", 5, 5, new Sword(2), 1,1,true, false, false));
+		units.add(new Unit(0, "textures/Archer.png", 3, 4, new Bow(2), 2,1,true, false, false));
+		units.add(new Unit(1, "textures/Character.png", 5, 5, new Sword(2), 6,8,true, false, false));
+		units.add(new Unit(1, "textures/Archer.png", 3, 4, new Bow(2), 7,8,true, false, false));
 
 		startButton = new Texture(Gdx.files.internal("textures/Start.png"));
 		editorButton = new Texture(Gdx.files.internal("textures/Editor.png"));
@@ -251,6 +252,7 @@ public class MyGdxGame extends ApplicationAdapter implements InputProcessor {
 							&& range.getDistance(lastClick[0] / 64, (1080 - lastClick[1]) / 64) < Integer.MAX_VALUE
 							&& lastClick[3] == Input.Buttons.LEFT) {
 						gameState.transition("battle");
+						selector = null;
 						secondarySelection = unit;
 					}
 					else if (unit == null && lastClick[3] == Input.Buttons.RIGHT){

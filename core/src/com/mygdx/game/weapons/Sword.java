@@ -20,7 +20,7 @@ public class Sword extends Weapon{
         super(1, 1);
         this.baseDamage = baseDamage;
         sounds = new LinkedList<>();
-        for (int i = 1; i < 8; i++) {
+        for (int i = 1; i <= 7; i++) {
             try {
                 sounds.add(Gdx.audio.newSound(Gdx.files.internal("sounds/Sword" + i + ".mp3")));
             } catch (GdxRuntimeException e){

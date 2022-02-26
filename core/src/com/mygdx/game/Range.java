@@ -15,6 +15,15 @@ public class Range {
             this.x = x;
             this.y = y;
         }
+
+        @Override
+        public String toString() {
+            return "Distance{" +
+                    "dist=" + dist +
+                    ", x=" + x +
+                    ", y=" + y +
+                    '}';
+        }
     }
 
     private final GameMap map;
@@ -69,15 +78,19 @@ public class Range {
         while(!toCheck.isEmpty()){
             Distance current = toCheck.remove();
             int position = calculatePosition(current.x, current.y);
-            if(current.x >= 0 && current.x < width
-                    && current.y >= 0 && current.y < height
-                    && ((map.getTile(current.x, current.y).isWalkable && canWalk)
+            boolean inMap = current.x >= 0 && current.x < width
+                    && current.y >= 0 && current.y < height;
+            boolean canTraverse = ((map.getTile(current.x, current.y).isWalkable && canWalk)
                     || (map.getTile(current.x, current.y).isSwimmable && canSwim)
-                    || (map.getTile(current.x, current.y).isFlyable && canFly))
-                    && reachable[position] == Integer.MAX_VALUE && (ignoreUnits
+                    || (map.getTile(current.x, current.y).isFlyable && canFly));
+            boolean avoidUnits = (ignoreUnits
                     || units.get(new Point(current.x, current.y)) == null)
                     || (units.get(new Point(current.x, current.y)) != null
-                    && units.get(new Point(current.x, current.y)).getOwner() == owner)) {
+                    && units.get(new Point(current.x, current.y)).getOwner() == owner);
+            if(reachable[position] == Integer.MAX_VALUE
+                    && inMap
+                    && canTraverse
+                    && avoidUnits) {
                 reachable[position] = current.dist;
                 toCheck.add(new Distance(current.dist - 1, current.x + 1, current.y));
                 toCheck.add(new Distance(current.dist - 1, current.x - 1, current.y));
@@ -90,6 +103,11 @@ public class Range {
                 if (Math.abs(x - this.x) + Math.abs(y - this.y) < minDistance){
                     reachable[calculatePosition(x, y)] = Integer.MAX_VALUE;
                 }
+            }
+        }
+        if(!ignoreUnits) {
+            for (Point point : units.keySet()) {
+                reachable[calculatePosition(point.x, point.y)] = Integer.MAX_VALUE;
             }
         }
         return reachable;
