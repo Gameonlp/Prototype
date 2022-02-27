@@ -33,7 +33,7 @@ public class Sword extends Weapon{
     public void dealDamage(Unit user, Unit target) {
         target.reduceHealth(baseDamage);
         try {
-            sounds.get(sounds.size() - random.nextInt(sounds.size() + 1)).play();
+            sounds.get(sounds.size() - 1 - random.nextInt(sounds.size())).play();
         } catch (IndexOutOfBoundsException e){
             // Asset did not exist
         }

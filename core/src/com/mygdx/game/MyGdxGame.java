@@ -10,6 +10,8 @@ import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.utils.Logger;
 import com.badlogic.gdx.utils.ScreenUtils;
+import com.mygdx.game.units.Archer;
+import com.mygdx.game.units.Commander;
 import com.mygdx.game.units.Unit;
 import com.mygdx.game.weapons.Bow;
 import com.mygdx.game.weapons.Sword;
@@ -23,7 +25,6 @@ public class MyGdxGame extends ApplicationAdapter implements InputProcessor {
 
 	SpriteBatch batch;
 	BitmapFont font;
-	List<Unit> units;
 	Map<Point, Unit> unitPositions;
 
 	Texture startButton;
@@ -102,11 +103,6 @@ public class MyGdxGame extends ApplicationAdapter implements InputProcessor {
 		font = new BitmapFont();
 		current = GameMap.loadMap(Gdx.files.internal("maps/test.map").path());
 		unitPositions = new HashMap<>();
-		units = new LinkedList<>();
-		units.add(new Unit(0, "textures/Character.png", 5, 5, new Sword(2), 1,1,true, false, false));
-		units.add(new Unit(0, "textures/Archer.png", 3, 4, new Bow(2), 2,1,true, false, false));
-		units.add(new Unit(1, "textures/Character.png", 5, 5, new Sword(2), 6,8,true, false, false));
-		units.add(new Unit(1, "textures/Archer.png", 3, 4, new Bow(2), 7,8,true, false, false));
 
 		startButton = new Texture(Gdx.files.internal("textures/Start.png"));
 		editorButton = new Texture(Gdx.files.internal("textures/Editor.png"));
@@ -156,7 +152,7 @@ public class MyGdxGame extends ApplicationAdapter implements InputProcessor {
 			if (lastClick != null) {
 				if (gameDefault.equals(gameState.getCurrent().getCurrent())) {
 					unitPositions.clear();
-					for (Unit unit : units){
+					for (Unit unit : current.getUnits()){
 						unitPositions.put(new Point(unit.getPositionX(), unit.getPositionY()), unit);
 					}
 					Unit unit = unitPositions.get(clickedTile(lastClick));
@@ -178,7 +174,7 @@ public class MyGdxGame extends ApplicationAdapter implements InputProcessor {
 										case 0:
 											primarySelection = unit;
 											range = new Range(current, unitPositions, unit.getWeapon().getMinDistance(), unit.getWeapon().getMaxDistance(),
-													unit.getPositionX(), unit.getPositionY(), true, false, false, true, unit.getOwner());
+													unit.getPositionX(), unit.getPositionY(), unit.isWalking(), unit.isFlying(), unit.isSwimming(), true, unit.getOwner());
 											color = Color.BLUE;
 											selector = unit.getWeapon().target(turnPlayer);
 											game.transition("target");
@@ -214,7 +210,7 @@ public class MyGdxGame extends ApplicationAdapter implements InputProcessor {
 										}
 										break;
 									case 1:
-										for (Unit unit : units) {
+										for (Unit unit : current.getUnits()) {
 											if (unit.getOwner() == turnPlayer) {
 												unit.endTurn();
 											}
@@ -267,12 +263,16 @@ public class MyGdxGame extends ApplicationAdapter implements InputProcessor {
 				commands.clear();
 				primarySelection.dealDamage(secondarySelection);
 
-				for (Unit unit : units){
+				List<Unit> toRemove = new LinkedList<>();
+				for (Unit unit : current.getUnits()){
 					if (unit.getHealth() <= 0){
 						//TODO destroy animation
-						units.remove(unit);
-						unit.destroy();
+						toRemove.add(unit);
 					}
+				}
+				current.getUnits().removeAll(toRemove);
+				for (Unit unit : toRemove){
+					unit.destroy();
 				}
 				range = null;
 				gameState.transition("finished");
@@ -330,16 +330,9 @@ public class MyGdxGame extends ApplicationAdapter implements InputProcessor {
 				}
 			}
 		}
-		for (Unit unit : units) {
+		for (Unit unit : current.getUnits()) {
 			int distance = Integer.MAX_VALUE;
-			switch (unit.getOwner()){
-				case 0:
-					batch.setColor(Color.GREEN);
-					break;
-				case 1:
-					batch.setColor(Color.RED);
-					break;
-			}
+			batch.setColor(current.getPlayers().get(unit.getOwner()).getPlayerColor());
 			if (range != null) {
 				distance = range.getDistance(unit.getPositionX(), height - unit.getPositionY() - 1);
 			}
@@ -359,9 +352,6 @@ public class MyGdxGame extends ApplicationAdapter implements InputProcessor {
 	public void dispose () {
 		batch.dispose();
 		font.dispose();
-		for (Unit unit : units) {
-			unit.destroy();
-		}
 		startButton.dispose();
 		editorButton.dispose();
 		configButton.dispose();

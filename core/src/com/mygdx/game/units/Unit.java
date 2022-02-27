@@ -5,7 +5,10 @@ import com.badlogic.gdx.graphics.Texture;
 import com.mygdx.game.UndoableCommand;
 import com.mygdx.game.weapons.Weapon;
 
-public class Unit {
+import java.util.List;
+import java.util.Map;
+
+public abstract class Unit {
     private boolean hasAttacked;
     private int owner;
     private Texture texture;

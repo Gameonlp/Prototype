@@ -2,30 +2,48 @@ package com.mygdx.game;
 
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.utils.Logger;
+import com.mygdx.game.units.Archer;
+import com.mygdx.game.units.Commander;
+import com.mygdx.game.units.Unit;
 
 import java.util.*;
 
 public class GameMap {
     private static final Logger LOGGER = new Logger(GameMap.class.getName());
     private final Tile[] map;
+    private List<Unit> units;
+    private List<Player> players;
     private final int height;
     private final int width;
     private HashMap<Tile, Texture> uniqueTextures;
 
     private static final Tile[] tileAtlas = new Tile[256];
+    private static final HashMap<String, Color> colorMap = new HashMap<>();
+    private static final HashMap<String, Player.PlayerType> playerTypeMap = new HashMap<>();
 
     static {
         tileAtlas[0] = new Tile("textures/Black.png",false, false, false, false);
         tileAtlas[1] = new Tile("textures/Grey.png",false, false, false, false);
         tileAtlas[2] = new Tile("textures/Tile.png",true, false, false, false);
+
+        colorMap.put("blue", Color.BLUE);
+        colorMap.put("red", Color.RED);
+        colorMap.put("green", Color.GREEN);
+        colorMap.put("yellow", Color.YELLOW);
+
+        playerTypeMap.put("human", Player.PlayerType.HUMAN);
+        playerTypeMap.put("ai", Player.PlayerType.AI);
     }
 
-    private GameMap(int width, int height, Tile[] map, HashMap<Tile, Texture> uniqueTextures){
+    private GameMap(int width, int height, Tile[] map, List<Player> players, List<Unit> units, HashMap<Tile, Texture> uniqueTextures){
         this.width = width;
         this.height = height;
         this.map = map;
+        this.players = players;
+        this.units = units;
         this.uniqueTextures = uniqueTextures;
     }
 
@@ -37,6 +55,8 @@ public class GameMap {
         int height = 0;
         int width = 0;
         Tile[] map = null;
+        List<Player> players = new LinkedList<>();
+        List<Unit> units = new LinkedList<>();
         HashMap<Tile, Texture> uniqueTextures = new HashMap<>();
         try(Scanner fileScanner = new Scanner(Gdx.files.internal(path).read())) {
             if (fileScanner.hasNext("\\d*?,\\d+?")) {
@@ -51,21 +71,51 @@ public class GameMap {
             }
             fileScanner.nextLine();
             int lineNumber = 0;
+            int state = 0;
             while (fileScanner.hasNextLine()) {
                 String line = fileScanner.nextLine();
-                String[] entries = line.split(",");
-                for(int i = 0; i < width; i++){
-                    Tile tile = tileAtlas[Integer.parseInt(entries[i])];
-                    map[width * lineNumber + i] = tile;
-                    uniqueTextures.put(tile, new Texture(Gdx.files.internal(tile.texturePath)));
+                switch (line){
+                    case "Players":
+                        state = 1;
+                        continue;
+                    case "Units":
+                        state = 2;
+                        continue;
                 }
-                lineNumber++;
+                switch (state) {
+                    case 0: {
+                        String[] entries = line.split(",");
+                        for (int i = 0; i < width; i++) {
+                            Tile tile = tileAtlas[Integer.parseInt(entries[i])];
+                            map[width * lineNumber + i] = tile;
+                            uniqueTextures.put(tile, new Texture(Gdx.files.internal(tile.texturePath)));
+                        }
+                        lineNumber++;
+                        break;
+                    }
+                    case 1:{
+                        String[] entries = line.split(",");
+                        players.add(new Player(colorMap.get(entries[0]), playerTypeMap.get(entries[1])));
+                        break;
+                    }
+                    case 2:{
+                        String[] entries = line.split(",");
+                        System.out.println(Arrays.toString(entries));
+                        if (entries[1].equals("Commander")) {
+                            units.add(new Commander(Integer.parseInt(entries[0]), Integer.parseInt(entries[2]), Integer.parseInt(entries[3])));
+                        }
+                        if (entries[1].equals("Archer")) {
+                            units.add(new Archer(Integer.parseInt(entries[0]), Integer.parseInt(entries[2]), Integer.parseInt(entries[3])));
+                        }
+                        break;
+                    }
+                }
             }
         }// catch (IOException e){
         //    LOGGER.error(e.toString());
         //    System.exit(-1);
         //}
-        return new GameMap(width, height, map, uniqueTextures);
+        return new GameMap(width, height, map, players, units, uniqueTextures);
     }
 
     public void setTile(int y, int x, Tile entry){
@@ -88,5 +138,16 @@ public class GameMap {
         for(Texture texture : uniqueTextures.values()){
             texture.dispose();
         }
+        for (Unit unit : units) {
+            unit.destroy();
+        }
+    }
+
+    public List<Unit> getUnits() {
+        return units;
+    }
+
+    public List<Player> getPlayers() {
+        return players;
     }
 }

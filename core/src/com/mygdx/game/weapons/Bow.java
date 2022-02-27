@@ -42,11 +42,11 @@ public class Bow extends Weapon{
     public void dealDamage(Unit user, Unit target) {
         target.reduceHealth(baseDamage);
         try {
-            bowSounds.get(bowSounds.size() - random.nextInt(bowSounds.size() + 1)).play();
+            bowSounds.get(bowSounds.size() - 1 - random.nextInt(bowSounds.size())).play();
             Timer.schedule(new Timer.Task() {
                 @Override
                 public void run() {
-                    arrowSounds.get(arrowSounds.size() - random.nextInt(arrowSounds.size() + 1)).play();
+                    arrowSounds.get(arrowSounds.size() - 1 - random.nextInt(arrowSounds.size())).play();
                 }
             }, 0.1f);
         } catch (IndexOutOfBoundsException e){
