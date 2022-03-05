@@ -1,6 +1,5 @@
 package com.mygdx.game;
 
-public interface UndoableCommand {
-    void execute();
+public interface UndoableCommand extends Command{
     void undo();
 }

@@ -2,15 +2,15 @@ package com.mygdx.game.units;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
+import com.mygdx.game.Command;
+import com.mygdx.game.player.Player;
+import com.mygdx.game.Point;
 import com.mygdx.game.UndoableCommand;
 import com.mygdx.game.weapons.Weapon;
 
-import java.util.List;
-import java.util.Map;
-
 public abstract class Unit {
     private boolean hasAttacked;
-    private int owner;
+    private Player owner;
     private Texture texture;
     private int healthPoints;
     private int maxHealthPoints;
@@ -23,7 +23,7 @@ public abstract class Unit {
     private boolean canSwim;
     private Weapon weapon;
 
-    public Unit(int owner, String texturePath, int healthPoints, int movePoints, Weapon weapon, int positionX, int positionY, boolean canWalk, boolean canFly, boolean canSwim){
+    public Unit(Player owner, String texturePath, int healthPoints, int movePoints, Weapon weapon, int positionX, int positionY, boolean canWalk, boolean canFly, boolean canSwim){
         this.owner = owner;
         this.texture = new Texture(Gdx.files.internal(texturePath));
         this.healthPoints = healthPoints;
@@ -37,6 +37,10 @@ public abstract class Unit {
         this.canWalk = canWalk;
         this.canSwim = canSwim;
         this.hasAttacked = false;
+    }
+
+    public  UndoableCommand move(Point point){
+        return move(point.x, point.y);
     }
 
     public UndoableCommand move(int x, int y){
@@ -109,15 +113,16 @@ public abstract class Unit {
         return weapon;
     }
 
-    public void dealDamage(Unit target){
-        this.hasAttacked = true;
-        System.out.println(this);
-        System.out.println(target);
-        weapon.dealDamage(this, target);
-        this.movePoints = 0;
+    public Command dealDamage(Unit target){
+        Unit attacker = this;
+        return () -> {
+            attacker.hasAttacked =true;
+            weapon.dealDamage(attacker, target);
+            attacker.movePoints =0;
+        };
     }
 
-    public int getOwner() {
+    public Player getOwner() {
         return owner;
     }
 

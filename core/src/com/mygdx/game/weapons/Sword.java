@@ -3,8 +3,8 @@ package com.mygdx.game.weapons;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.utils.GdxRuntimeException;
+import com.mygdx.game.player.Player;
 import com.mygdx.game.Selector;
-import com.mygdx.game.UndoableCommand;
 import com.mygdx.game.units.Unit;
 
 import java.util.LinkedList;
@@ -47,7 +47,7 @@ public class Sword extends Weapon{
     }
 
     @Override
-    public Selector target(int owner) {
+    public Selector target(Player owner) {
         return target -> target.getOwner() != owner;
     }
 }

@@ -1,4 +1,4 @@
-package com.mygdx.game;
+package com.mygdx.game.player;
 
 import com.badlogic.gdx.graphics.Color;
 
@@ -22,5 +22,13 @@ public class Player {
     public Player(Color playerColor, PlayerType playerType){
         this.playerColor = playerColor;
         this.playerType = playerType;
+    }
+
+    @Override
+    public String toString() {
+        return "Player{" +
+                "playerColor=" + playerColor +
+                ", playerType=" + playerType +
+                '}';
     }
 }

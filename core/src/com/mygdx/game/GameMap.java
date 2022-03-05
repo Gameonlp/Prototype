@@ -5,6 +5,9 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.utils.Logger;
+import com.mygdx.game.player.Player;
+import com.mygdx.game.player.aiplayer.AIPlayer;
+import com.mygdx.game.player.aiplayer.strategy.RandomStrategy;
 import com.mygdx.game.units.Archer;
 import com.mygdx.game.units.Commander;
 import com.mygdx.game.units.Unit;
@@ -95,20 +98,26 @@ public class GameMap {
                     }
                     case 1:{
                         String[] entries = line.split(",");
-                        players.add(new Player(colorMap.get(entries[0]), playerTypeMap.get(entries[1])));
+                        if (playerTypeMap.get(entries[1]) == Player.PlayerType.AI){
+                            players.add(new AIPlayer(colorMap.get(entries[0]), new RandomStrategy()));
+                        } else {
+                            players.add(new Player(colorMap.get(entries[0]), playerTypeMap.get(entries[1])));
+                        }
                         break;
                     }
                     case 2:{
                         String[] entries = line.split(",");
-                        System.out.println(Arrays.toString(entries));
                         if (entries[1].equals("Commander")) {
-                            units.add(new Commander(Integer.parseInt(entries[0]), Integer.parseInt(entries[2]), Integer.parseInt(entries[3])));
+                            units.add(new Commander(players.get(Integer.parseInt(entries[0])), Integer.parseInt(entries[2]), Integer.parseInt(entries[3])));
                         }
                         if (entries[1].equals("Archer")) {
-                            units.add(new Archer(Integer.parseInt(entries[0]), Integer.parseInt(entries[2]), Integer.parseInt(entries[3])));
+                            units.add(new Archer(players.get(Integer.parseInt(entries[0])), Integer.parseInt(entries[2]), Integer.parseInt(entries[3])));
                         }
                         break;
                     }
+                    default:
+                        LOGGER.error("Could not load map! Map contained: " + line);
+                        System.exit(-1);
                 }
             }
         }// catch (IOException e){

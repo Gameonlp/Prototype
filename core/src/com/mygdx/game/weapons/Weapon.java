@@ -1,7 +1,7 @@
 package com.mygdx.game.weapons;
 
+import com.mygdx.game.player.Player;
 import com.mygdx.game.Selector;
-import com.mygdx.game.UndoableCommand;
 import com.mygdx.game.units.Unit;
 
 public abstract class Weapon {
@@ -25,5 +25,5 @@ public abstract class Weapon {
 
     public abstract void destroy();
 
-    public abstract Selector target(int owner);
+    public abstract Selector target(Player owner);
 }

@@ -1,5 +1,6 @@
 package com.mygdx.game;
 
+import com.mygdx.game.player.Player;
 import com.mygdx.game.units.Unit;
 
 import java.util.*;
@@ -36,18 +37,22 @@ public class Range {
     private final boolean canFly;
     private final boolean canSwim;
     private final boolean ignoreUnits;
-    private int owner;
+    private Player owner;
     private int[] reachable;
 
-    public Range(GameMap map, Map<Point, Unit> units, int maxDistance, int x, int y, boolean canWalk, boolean canFly, boolean canSwim, int owner) {
+    public Range(GameMap map, Map<Point, Unit> units, Unit unit){
+        this(map, units, unit.getMovePoints(), unit.getPositionX(), unit.getPositionY(), unit.isWalking(), unit.isFlying(), unit.isSwimming(), unit.getOwner());
+    }
+
+    public Range(GameMap map, Map<Point, Unit> units, int maxDistance, int x, int y, boolean canWalk, boolean canFly, boolean canSwim, Player owner) {
         this(map, units, 1, maxDistance, x, y, canWalk, canFly, canSwim, false, owner);
     }
 
     public Range(GameMap map, Map<Point, Unit> units, int minDistance, int maxDistance, int x, int y, boolean canWalk, boolean canFly, boolean canSwim, boolean ignoreUnits) {
-        this(map, units, minDistance, maxDistance, x, y, canWalk, canFly, canSwim, ignoreUnits, 0);
+        this(map, units, minDistance, maxDistance, x, y, canWalk, canFly, canSwim, ignoreUnits, null);
     }
 
-    public Range(GameMap map, Map<Point, Unit> units, int minDistance, int maxDistance, int x, int y, boolean canWalk, boolean canFly, boolean canSwim, boolean ignoreUnits, int owner){
+    public Range(GameMap map, Map<Point, Unit> units, int minDistance, int maxDistance, int x, int y, boolean canWalk, boolean canFly, boolean canSwim, boolean ignoreUnits, Player owner){
         this.map = map;
         this.units = units;
         this.minDistance = minDistance;
@@ -114,6 +119,9 @@ public class Range {
     }
 
     public int getDistance(int x, int y){
-        return reachable[calculatePosition(x, y)];
+        if (x < map.getWidth() && x >= 0 && y < map.getHeight() && y >= 0) {
+            return reachable[calculatePosition(x, y)];
+        }
+        return Integer.MAX_VALUE;
     }
 }

@@ -20,8 +20,8 @@ public class SettingsManager {
     }
 
     private void loadSettings(){
-        booleanSettings.put("DebugShowDistances", true);
-        booleanSettings.put("DebugPrintStates", true);
+        booleanSettings.put("DebugShowDistances", false);
+        booleanSettings.put("DebugPrintStates", false);
     }
 
     public boolean getBooleanSetting(String name){

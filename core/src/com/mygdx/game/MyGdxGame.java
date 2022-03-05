@@ -10,11 +10,11 @@ import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.utils.Logger;
 import com.badlogic.gdx.utils.ScreenUtils;
-import com.mygdx.game.units.Archer;
-import com.mygdx.game.units.Commander;
+import com.badlogic.gdx.utils.async.AsyncExecutor;
+import com.badlogic.gdx.utils.async.AsyncResult;
+import com.mygdx.game.player.Player;
+import com.mygdx.game.player.aiplayer.AIPlayer;
 import com.mygdx.game.units.Unit;
-import com.mygdx.game.weapons.Bow;
-import com.mygdx.game.weapons.Sword;
 
 import java.util.*;
 
@@ -61,6 +61,8 @@ public class MyGdxGame extends ApplicationAdapter implements InputProcessor {
 	private Texture close;
 
 	int turnPlayer = 0;
+	AsyncResult<List<Command>> planContainer = null;
+	AsyncExecutor Planner = new AsyncExecutor(4);
 
 	int[] lastClick;
 
@@ -121,8 +123,6 @@ public class MyGdxGame extends ApplicationAdapter implements InputProcessor {
 	@Override
 	public void render () {
 		ScreenUtils.clear(0, 0, 0, 1);
-
-
 		batch.begin();
 		if (loading.equals(gameState.getCurrent())) {
 			//TODO load anything here
@@ -131,165 +131,193 @@ public class MyGdxGame extends ApplicationAdapter implements InputProcessor {
 			if (lastClick != null && lastClick[3] == Input.Buttons.LEFT) {
 				if (clickInBoundingBox(lastClick, 660, 1260, 900, 800)) {
 					gameState.transition("start");
-					System.out.println("start");
 				}
 				else if (clickInBoundingBox(lastClick, 660, 1260, 750, 650)) {
 					gameState.transition("edit");
-					System.out.println("edit");
 				}
 				else if (clickInBoundingBox(lastClick, 660, 1260, 600, 500)) {
 					gameState.transition("config");
-					System.out.println("config");
 				}
 				else if (clickInBoundingBox(lastClick, 660, 1260, 450, 350)) {
 					gameState.transition("exit");
-					System.out.println("exit");
 				}
 			}
 			lastClick = null;
 			renderMenu();
 		} else if (game.equals(gameState.getCurrent())) {
-			if (lastClick != null) {
-				if (gameDefault.equals(gameState.getCurrent().getCurrent())) {
-					unitPositions.clear();
-					for (Unit unit : current.getUnits()){
-						unitPositions.put(new Point(unit.getPositionX(), unit.getPositionY()), unit);
-					}
-					Unit unit = unitPositions.get(clickedTile(lastClick));
-					if (unit != null
-							&& lastClick[3] == Input.Buttons.LEFT && unit.getMovePoints() > 0) {
-						range = new Range(current, unitPositions, unit.getMovePoints(), unit.getPositionX(), unit.getPositionY(), true, false, false, unit.getOwner());
-						color = Color.GREEN;
-						primarySelection = unit;
-						gameState.transition("click");
-						System.out.println(unit);
-					} else if (unit != null
-							&& lastClick[3] == Input.Buttons.RIGHT) {
-						gameState.transition("context");
-						if (!unit.hasAttacked()) {
-							contextMenu = new ContextMenu(lastClick[0], lastClick[1], batch, attack, close) {
-								@Override
-								public void clickMenu(int x, int y) {
-									switch (this.getClickedButton(x, y)) {
-										case 0:
-											primarySelection = unit;
-											range = new Range(current, unitPositions, unit.getWeapon().getMinDistance(), unit.getWeapon().getMaxDistance(),
-													unit.getPositionX(), unit.getPositionY(), unit.isWalking(), unit.isFlying(), unit.isSwimming(), true, unit.getOwner());
-											color = Color.BLUE;
-											selector = unit.getWeapon().target(turnPlayer);
-											game.transition("target");
-											break;
-										case 1:
-											gameState.transition("close");
-											break;
-									}
-								}
-							};
-						} else {
-							contextMenu = new ContextMenu(lastClick[0], lastClick[1], batch, close) {
-								@Override
-								public void clickMenu(int x, int y) {
-									if (this.getClickedButton(x, y) == 0) {
-										gameState.transition("close");
-									}
-								}
-							};
-
-						}
-						lastClick = null;
-					} else if (unit == null && lastClick[3] == Input.Buttons.RIGHT){
-						gameState.transition("context");
-						contextMenu = new ContextMenu(lastClick[0], lastClick[1], batch, undo, next, close) {
-							@Override
-							public void clickMenu(int x, int y) {
-								switch (this.getClickedButton(x, y)){
-									case 0:
-										if (!commands.empty()) {
-											UndoableCommand lastCommand = commands.pop();
-											lastCommand.undo();
-										}
-										break;
-									case 1:
-										for (Unit unit : current.getUnits()) {
-											if (unit.getOwner() == turnPlayer) {
-												unit.endTurn();
-											}
-										}
-										commands.clear();
-										turnPlayer = (1 + turnPlayer) % 2;//TODO move numPlayers into map
-										gameState.transition("close");
-										break;
-									case 2:
-										gameState.transition("close");
-										break;
-								}
-							}
-						};
-						lastClick = null;
-					}
-				} else if (gameSelected.equals(gameState.getCurrent().getCurrent())){
-					if (primarySelection.getOwner() == turnPlayer && range.getDistance(lastClick[0] / 64, (1080 - lastClick[1]) / 64) >= 0
-							&& range.getDistance(lastClick[0] / 64, (1080 - lastClick[1]) / 64) < Integer.MAX_VALUE
-							&& lastClick[3] == Input.Buttons.LEFT) {
-						range = null;
-						gameState.transition("click");
-						UndoableCommand moveCommand = primarySelection.move(lastClick[0] / 64, (1080 - lastClick[1]) / 64);
-						moveCommand.execute();
-						commands.push(moveCommand);
-					} else if (range.getDistance(lastClick[0] / 64, (1080 - lastClick[1]) / 64) >= 0
-							&& range.getDistance(lastClick[0] / 64, (1080 - lastClick[1]) / 64) < Integer.MAX_VALUE
-							&& lastClick[3] == Input.Buttons.RIGHT){
-						range = null;
-						gameState.transition("click");
-					}
-				} else if (gameChooseTarget.equals(gameState.getCurrent().getCurrent())){
-					Unit unit = unitPositions.get(new Point(lastClick[0] / 64, (1080 - lastClick[1]) / 64));
-					if (unit != null && selector.select(unit) && range.getDistance(lastClick[0] / 64, (1080 - lastClick[1]) / 64) >= 0
-							&& range.getDistance(lastClick[0] / 64, (1080 - lastClick[1]) / 64) < Integer.MAX_VALUE
-							&& lastClick[3] == Input.Buttons.LEFT) {
-						gameState.transition("battle");
-						selector = null;
-						secondarySelection = unit;
-					}
-					else if (unit == null && lastClick[3] == Input.Buttons.RIGHT){
-						range = null;
-						gameState.transition("close");
-					}
-				}
-			}
-			renderGame(range, color, selector);
-			if (gameBattle.equals(gameState.getCurrent().getCurrent())){
-				//TODO battle animation
-				commands.clear();
-				primarySelection.dealDamage(secondarySelection);
-
-				List<Unit> toRemove = new LinkedList<>();
-				for (Unit unit : current.getUnits()){
-					if (unit.getHealth() <= 0){
-						//TODO destroy animation
-						toRemove.add(unit);
-					}
-				}
-				current.getUnits().removeAll(toRemove);
-				for (Unit unit : toRemove){
-					unit.destroy();
-				}
-				range = null;
-				gameState.transition("finished");
-			}
-			if (gameContextMenu.equals(gameState.getCurrent().getCurrent())){
-				if(lastClick != null && lastClick[3] == Input.Buttons.LEFT){
-					contextMenu.clickMenu(lastClick[0], lastClick[1]);
-				} else if(lastClick != null && lastClick[3] == Input.Buttons.RIGHT){
-					gameState.transition("close");
-				}
-				contextMenu.draw();
-			}
-			lastClick = null;
+			handleGame();
 		} else if (exit.equals(gameState.getCurrent())) {
 			Gdx.app.exit();
 		}
 		batch.end();
+	}
+
+	private void handleGame() {
+		Player currentPlayer = current.getPlayers().get(turnPlayer);
+		System.out.println(currentPlayer);
+		if (currentPlayer.getPlayerType() == Player.PlayerType.AI){
+			System.out.println("planning");
+			if (planContainer == null) {
+				planContainer = Planner.submit(() -> ((AIPlayer) currentPlayer).handleTurn(current, unitPositions));
+			}
+			if (planContainer.isDone()) {
+				List<Command> plan = planContainer.get();
+				planContainer = null;
+				for (Command command : plan) {
+					command.execute();
+				}
+
+				//TODO code clone of line 299-- remove
+				for (Unit unit : current.getUnits()) {
+					if (unit.getOwner() == current.getPlayers().get(turnPlayer)) {
+						unit.endTurn();
+					}
+				}
+				commands.clear();
+				turnPlayer = (1 + turnPlayer) % current.getPlayers().size();
+			}
+		}
+		if (lastClick != null) {
+			if (gameDefault.equals(gameState.getCurrent().getCurrent())) {
+				handleGameDefault();
+			} else if (gameSelected.equals(gameState.getCurrent().getCurrent())){
+				if (primarySelection.getOwner() == currentPlayer && currentPlayer.getPlayerType() == Player.PlayerType.HUMAN && range.getDistance(lastClick[0] / 64, (1080 - lastClick[1]) / 64) >= 0
+						&& range.getDistance(lastClick[0] / 64, (1080 - lastClick[1]) / 64) < Integer.MAX_VALUE
+						&& lastClick[3] == Input.Buttons.LEFT) {
+					range = null;
+					gameState.transition("click");
+					UndoableCommand moveCommand = primarySelection.move(lastClick[0] / 64, (1080 - lastClick[1]) / 64);
+					moveCommand.execute();
+					commands.push(moveCommand);
+				} else if (range.getDistance(lastClick[0] / 64, (1080 - lastClick[1]) / 64) >= 0
+						&& range.getDistance(lastClick[0] / 64, (1080 - lastClick[1]) / 64) < Integer.MAX_VALUE
+						&& lastClick[3] == Input.Buttons.RIGHT){
+					range = null;
+					gameState.transition("click");
+				}
+			} else if (gameChooseTarget.equals(gameState.getCurrent().getCurrent())){
+				Unit unit = unitPositions.get(new Point(lastClick[0] / 64, (1080 - lastClick[1]) / 64));
+				if (unit != null && selector.select(unit) && range.getDistance(lastClick[0] / 64, (1080 - lastClick[1]) / 64) >= 0
+						&& range.getDistance(lastClick[0] / 64, (1080 - lastClick[1]) / 64) < Integer.MAX_VALUE
+						&& lastClick[3] == Input.Buttons.LEFT) {
+					gameState.transition("battle");
+					selector = null;
+					secondarySelection = unit;
+				}
+				else if (unit == null && lastClick[3] == Input.Buttons.RIGHT){
+					range = null;
+					gameState.transition("close");
+				}
+			}
+		}
+		renderGame(range, color, selector);
+		if (gameBattle.equals(gameState.getCurrent().getCurrent())){
+			//TODO battle animation
+			commands.clear();
+			primarySelection.dealDamage(secondarySelection).execute();
+
+			List<Unit> toRemove = new LinkedList<>();
+			for (Unit unit : current.getUnits()){
+				if (unit.getHealth() <= 0){
+					//TODO destroy animation
+					toRemove.add(unit);
+				}
+			}
+			current.getUnits().removeAll(toRemove);
+			for (Unit unit : toRemove){
+				unit.destroy();
+			}
+			range = null;
+			gameState.transition("finished");
+		}
+		if (gameContextMenu.equals(gameState.getCurrent().getCurrent())){
+			if(lastClick != null && lastClick[3] == Input.Buttons.LEFT){
+				contextMenu.clickMenu(lastClick[0], lastClick[1]);
+			} else if(lastClick != null && lastClick[3] == Input.Buttons.RIGHT){
+				gameState.transition("close");
+			}
+			contextMenu.draw();
+		}
+		lastClick = null;
+	}
+
+	private void handleGameDefault() {
+		unitPositions.clear();
+		for (Unit unit : current.getUnits()){
+			unitPositions.put(new Point(unit.getPositionX(), unit.getPositionY()), unit);
+		}
+		Unit unit = unitPositions.get(clickedTile(lastClick));
+		if (unit != null
+				&& lastClick[3] == Input.Buttons.LEFT && unit.getMovePoints() > 0) {
+			range = new Range(current, unitPositions, unit.getMovePoints(), unit.getPositionX(), unit.getPositionY(), true, false, false, unit.getOwner());
+			color = Color.GREEN;
+			primarySelection = unit;
+			gameState.transition("click");
+		} else if (unit != null
+				&& lastClick[3] == Input.Buttons.RIGHT) {
+			gameState.transition("context");
+			if (!unit.hasAttacked()) {
+				contextMenu = new ContextMenu(lastClick[0], lastClick[1], batch, attack, close) {
+					@Override
+					public void clickMenu(int x, int y) {
+						switch (this.getClickedButton(x, y)) {
+							case 0:
+								primarySelection = unit;
+								range = new Range(current, unitPositions, unit.getWeapon().getMinDistance(), unit.getWeapon().getMaxDistance(),
+										unit.getPositionX(), unit.getPositionY(), unit.isWalking(), unit.isFlying(), unit.isSwimming(), true, unit.getOwner());
+								color = Color.BLUE;
+								selector = unit.getWeapon().target(current.getPlayers().get(turnPlayer));
+								game.transition("target");
+								break;
+							case 1:
+								gameState.transition("close");
+								break;
+						}
+					}
+				};
+			} else {
+				contextMenu = new ContextMenu(lastClick[0], lastClick[1], batch, close) {
+					@Override
+					public void clickMenu(int x, int y) {
+						if (this.getClickedButton(x, y) == 0) {
+							gameState.transition("close");
+						}
+					}
+				};
+
+			}
+			lastClick = null;
+		} else if (unit == null && lastClick[3] == Input.Buttons.RIGHT){
+			gameState.transition("context");
+			contextMenu = new ContextMenu(lastClick[0], lastClick[1], batch, undo, next, close) {
+				@Override
+				public void clickMenu(int x, int y) {
+					switch (this.getClickedButton(x, y)){
+						case 0:
+							if (!commands.empty()) {
+								UndoableCommand lastCommand = commands.pop();
+								lastCommand.undo();
+							}
+							break;
+						case 1:
+							for (Unit unit : current.getUnits()) {
+								if (unit.getOwner() == current.getPlayers().get(turnPlayer)) {
+									unit.endTurn();
+								}
+							}
+							commands.clear();
+							turnPlayer = (1 + turnPlayer) % current.getPlayers().size();
+							gameState.transition("close");
+							//TODO add State for end turn
+							break;
+						case 2:
+							gameState.transition("close");
+							break;
+					}
+				}
+			};
+			lastClick = null;
+		}
 	}
 
 	private boolean clickInBoundingBox(int[] lastClick, int left, int right, int top, int bottom){
@@ -332,7 +360,7 @@ public class MyGdxGame extends ApplicationAdapter implements InputProcessor {
 		}
 		for (Unit unit : current.getUnits()) {
 			int distance = Integer.MAX_VALUE;
-			batch.setColor(current.getPlayers().get(unit.getOwner()).getPlayerColor());
+			batch.setColor(unit.getOwner().getPlayerColor());
 			if (range != null) {
 				distance = range.getDistance(unit.getPositionX(), height - unit.getPositionY() - 1);
 			}
