@@ -7,13 +7,15 @@ import com.mygdx.game.player.Player;
 import com.mygdx.game.Point;
 import com.mygdx.game.UndoableCommand;
 import com.mygdx.game.weapons.Weapon;
+import org.w3c.dom.ranges.Range;
+
+import java.util.List;
 
 public abstract class Unit {
     private boolean hasAttacked;
     private Player owner;
     private Texture texture;
     private int healthPoints;
-    private int maxHealthPoints;
     private int movePoints;
     private int maxMovePoints;
     private int positionX;
@@ -23,11 +25,14 @@ public abstract class Unit {
     private boolean canSwim;
     private Weapon weapon;
 
+    public Unit(Player owner, String texturePath, int movePoints, Weapon weapon, int positionX, int positionY, boolean canWalk, boolean canFly, boolean canSwim) {
+        this(owner, texturePath, 10, movePoints, weapon, positionX, positionY, canWalk, canFly, canSwim);
+    }
+
     public Unit(Player owner, String texturePath, int healthPoints, int movePoints, Weapon weapon, int positionX, int positionY, boolean canWalk, boolean canFly, boolean canSwim){
         this.owner = owner;
         this.texture = new Texture(Gdx.files.internal(texturePath));
         this.healthPoints = healthPoints;
-        this.maxHealthPoints = healthPoints;
         this.movePoints = movePoints;
         this.maxMovePoints = movePoints;
         this.weapon = weapon;
@@ -121,9 +126,11 @@ public abstract class Unit {
         System.out.println(this + " " + target);
         Unit attacker = this;
         return () -> {
-            attacker.hasAttacked =true;
-            weapon.dealDamage(attacker, target);
-            attacker.movePoints =0;
+            if (target != null) {
+                attacker.hasAttacked = true;
+                weapon.dealDamage(attacker, target);
+                attacker.movePoints = 0;
+            }
         };
     }
 
@@ -146,7 +153,6 @@ public abstract class Unit {
                 ", owner=" + owner +
                 ", texture=" + texture +
                 ", healthPoints=" + healthPoints +
-                ", maxHealthPoints=" + maxHealthPoints +
                 ", movePoints=" + movePoints +
                 ", maxMovePoints=" + maxMovePoints +
                 ", positionX=" + positionX +

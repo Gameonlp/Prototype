@@ -5,24 +5,27 @@ import com.mygdx.game.GameMap;
 import com.mygdx.game.Point;
 import com.mygdx.game.Range;
 import com.mygdx.game.player.Player;
+import com.mygdx.game.player.aiplayer.strategy.plan.MoveStep;
+import com.mygdx.game.player.aiplayer.strategy.plan.NopStep;
+import com.mygdx.game.player.aiplayer.strategy.plan.Plan;
 import com.mygdx.game.units.Unit;
 
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
+import java.util.*;
 
 public class RandomStrategy implements Strategy{
     @Override
-    public List<Command> handleTurn(Player owner, GameMap map, Map<Point, Unit> unitPositions){
-        List<Command> commands = new LinkedList<>();
+    public Plan handleTurn(Player owner, GameMap map, Map<Point, Unit> unitPositions){
+        Plan commands = new Plan();
         List<Unit> myUnits = new LinkedList<>();
         for (Unit unit : map.getUnits()) {
             if (unit.getOwner() == owner) {
                 myUnits.add(unit);
             }
         }
+        commands.setStep(new NopStep());
+        Plan parent = commands;
         for (Unit unit : myUnits){
+            Plan current = new Plan();
             Range range = new Range(map, unitPositions, unit);
             List<Point> reachable = new LinkedList<>();
             for (int x = -unit.getMovePoints(); x < unit.getMovePoints(); x++){
@@ -39,7 +42,9 @@ public class RandomStrategy implements Strategy{
             Random random = new Random();
             if (reachable.size() > 0) {
                 System.out.println(reachable);
-                commands.add(unit.move(reachable.get(random.nextInt(reachable.size()))));
+                current.setStep(new MoveStep(unit, reachable.get(random.nextInt(reachable.size()))));
+                parent.addSubPlans(new LinkedList<>(Collections.singleton(current)));
+                parent = current;
             }
         }
         return commands;

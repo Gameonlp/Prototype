@@ -52,11 +52,11 @@ public class Range {
         this(map, units, 1, maxDistance, x, y, canWalk, canFly, canSwim, false, owner);
     }
 
-    public Range(GameMap map, Map<Point, Unit> units, Unit unit, Boolean ignoreUnits) {
+    public Range(GameMap map, Map<Point, Unit> units, Unit unit, boolean ignoreUnits) {
         this(map, units, unit.getWeapon().getMinDistance(), unit.getWeapon().getMaxDistance(), unit.getPositionX(), unit.getPositionY(), unit.isWalking(), unit.isFlying(), unit.isSwimming(), ignoreUnits, unit.getOwner());
     }
 
-    public Range(GameMap map, Map<Point, Unit> units, Point pos, Unit unit, Boolean ignoreUnits) {
+    public Range(GameMap map, Map<Point, Unit> units, Point pos, Unit unit, boolean ignoreUnits) {
         this(map, units, unit.getWeapon().getMinDistance(), unit.getWeapon().getMaxDistance(), pos.x, pos.y, unit.isWalking(), unit.isFlying(), unit.isSwimming(), ignoreUnits, unit.getOwner());
     }
 

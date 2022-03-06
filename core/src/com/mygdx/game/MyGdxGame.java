@@ -14,6 +14,10 @@ import com.badlogic.gdx.utils.async.AsyncExecutor;
 import com.badlogic.gdx.utils.async.AsyncResult;
 import com.mygdx.game.player.Player;
 import com.mygdx.game.player.aiplayer.AIPlayer;
+import com.mygdx.game.player.aiplayer.strategy.plan.AttackStep;
+import com.mygdx.game.player.aiplayer.strategy.plan.MoveStep;
+import com.mygdx.game.player.aiplayer.strategy.plan.Plan;
+import com.mygdx.game.player.aiplayer.strategy.plan.Step;
 import com.mygdx.game.units.Unit;
 
 import java.util.*;
@@ -62,7 +66,7 @@ public class MyGdxGame extends ApplicationAdapter implements InputProcessor {
 	private Texture close;
 
 	int turnPlayer = 0;
-	AsyncResult<List<Command>> planContainer = null;
+	AsyncResult<Plan> planContainer = null;
 	AsyncExecutor Planner = new AsyncExecutor(4);
 
 	int[] lastClick;
@@ -161,20 +165,27 @@ public class MyGdxGame extends ApplicationAdapter implements InputProcessor {
 		Player currentPlayer = current.getPlayers().get(turnPlayer);
 		System.out.println(currentPlayer);
 		if (currentPlayer.getPlayerType() == Player.PlayerType.AI){
-			System.out.println("planning");
 			if (planContainer == null) {
 				planContainer = Planner.submit(() -> ((AIPlayer) currentPlayer).handleTurn(current, unitPositions));
 			}
 			if (planContainer.isDone()) {
-				List<Command> plan = planContainer.get();
+				Plan plan = planContainer.get();
 				planContainer = null;
-				for (Command command : plan) {
-					command.execute();
-					// add unit clean up and replanning?
-				}
-
+				plan.executeForAll(step -> {
+					Command command = null;
+					if (step.getType().equals("move")){
+						MoveStep current = (MoveStep) step;
+						command = current.toMove.move(current.moveTo);
+					}
+					else if (step.getType().equals("attack")){
+						AttackStep current = (AttackStep) step;
+						command = current.attacker.dealDamage(current.target);
+					}
+					if (command != null) {
+						command.execute();
+					}
+				});
 				clearUnits();
-
 				gameState.transition("endTurn");
 			}
 		}
