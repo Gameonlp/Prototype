@@ -10,5 +10,5 @@ import java.util.List;
 import java.util.Map;
 
 public interface Strategy {
-    public List<Command> handleTurn(Player owner, GameMap map, Map<Point, Unit> unitPositions);
+    List<Command> handleTurn(Player owner, GameMap map, Map<Point, Unit> unitPositions);
 }

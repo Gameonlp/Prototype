@@ -97,6 +97,10 @@ public abstract class Unit {
         return movePoints;
     }
 
+    public int getMaxMovePoints() {
+        return maxMovePoints;
+    }
+
     public int getPositionX(){
         return positionX;
     }
@@ -114,6 +118,7 @@ public abstract class Unit {
     }
 
     public Command dealDamage(Unit target){
+        System.out.println(this + " " + target);
         Unit attacker = this;
         return () -> {
             attacker.hasAttacked =true;

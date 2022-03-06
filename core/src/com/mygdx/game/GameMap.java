@@ -7,6 +7,7 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.utils.Logger;
 import com.mygdx.game.player.Player;
 import com.mygdx.game.player.aiplayer.AIPlayer;
+import com.mygdx.game.player.aiplayer.strategy.AggressiveDumbStrategy;
 import com.mygdx.game.player.aiplayer.strategy.RandomStrategy;
 import com.mygdx.game.units.Archer;
 import com.mygdx.game.units.Commander;
@@ -99,7 +100,7 @@ public class GameMap {
                     case 1:{
                         String[] entries = line.split(",");
                         if (playerTypeMap.get(entries[1]) == Player.PlayerType.AI){
-                            players.add(new AIPlayer(colorMap.get(entries[0]), new RandomStrategy()));
+                            players.add(new AIPlayer(colorMap.get(entries[0]), new AggressiveDumbStrategy()));
                         } else {
                             players.add(new Player(colorMap.get(entries[0]), playerTypeMap.get(entries[1])));
                         }

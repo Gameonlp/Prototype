@@ -6,6 +6,10 @@ import com.mygdx.game.units.Unit;
 import java.util.*;
 
 public class Range {
+    public int getDistance(Point enemy) {
+        return getDistance(enemy.x, enemy.y);
+    }
+
     private class Distance{
         private final int dist;
         private final int x;
@@ -48,8 +52,12 @@ public class Range {
         this(map, units, 1, maxDistance, x, y, canWalk, canFly, canSwim, false, owner);
     }
 
-    public Range(GameMap map, Map<Point, Unit> units, int minDistance, int maxDistance, int x, int y, boolean canWalk, boolean canFly, boolean canSwim, boolean ignoreUnits) {
-        this(map, units, minDistance, maxDistance, x, y, canWalk, canFly, canSwim, ignoreUnits, null);
+    public Range(GameMap map, Map<Point, Unit> units, Unit unit, Boolean ignoreUnits) {
+        this(map, units, unit.getWeapon().getMinDistance(), unit.getWeapon().getMaxDistance(), unit.getPositionX(), unit.getPositionY(), unit.isWalking(), unit.isFlying(), unit.isSwimming(), ignoreUnits, unit.getOwner());
+    }
+
+    public Range(GameMap map, Map<Point, Unit> units, Point pos, Unit unit, Boolean ignoreUnits) {
+        this(map, units, unit.getWeapon().getMinDistance(), unit.getWeapon().getMaxDistance(), pos.x, pos.y, unit.isWalking(), unit.isFlying(), unit.isSwimming(), ignoreUnits, unit.getOwner());
     }
 
     public Range(GameMap map, Map<Point, Unit> units, int minDistance, int maxDistance, int x, int y, boolean canWalk, boolean canFly, boolean canSwim, boolean ignoreUnits, Player owner){

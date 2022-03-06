@@ -37,13 +37,14 @@ public class MyGdxGame extends ApplicationAdapter implements InputProcessor {
 	//State Machine for Game States
 	private final HierarchicalStateMachine gameState;
 	private final State loading;
-	private final State mainmenu;
+	private final State mainMenu;
 	private final HierarchicalStateMachine game;
 	private final State gameDefault;
 	private final State gameSelected;
 	private final State gameContextMenu;
 	private final State gameChooseTarget;
 	private final State gameBattle;
+	private final State gameTurnEnd;
 	private final HierarchicalStateMachine editor;
 	private final State exit;
 
@@ -69,7 +70,7 @@ public class MyGdxGame extends ApplicationAdapter implements InputProcessor {
 	public MyGdxGame(){
 		gameState = new HierarchicalStateMachine("gameStates");
 		loading = new State("loading");
-		mainmenu = new State("mainmenu");
+		mainMenu = new State("mainMenu");
 		game = new HierarchicalStateMachine("game", false);
 		// The basic state of the game logic, calculates unit positions
 		gameDefault = new State("default");
@@ -77,23 +78,27 @@ public class MyGdxGame extends ApplicationAdapter implements InputProcessor {
 		gameContextMenu = new State("context");
 		gameChooseTarget = new State("target");
 		gameBattle = new State("battle");
+		gameTurnEnd = new State("turnEnd");
 		editor = new HierarchicalStateMachine("editor", false);
 		exit = new State("exit");
-		gameState.addTransition(loading, "loaded", mainmenu);
-		gameState.addTransition(mainmenu, "start", game);
-		gameState.addTransition(mainmenu, "edit", editor);
-		gameState.addTransition(game, "toMenu", mainmenu);
+		gameState.addTransition(loading, "loaded", mainMenu);
+		gameState.addTransition(mainMenu, "start", game);
+		gameState.addTransition(mainMenu, "edit", editor);
+		gameState.addTransition(game, "toMenu", mainMenu);
 		game.addTransition(gameDefault, "click", gameSelected);
+		game.addTransition(gameDefault, "endTurn", gameTurnEnd);
 		game.addTransition(gameSelected, "click", gameDefault);
 		game.addTransition(gameDefault, "context", gameContextMenu);
 		game.addTransition(gameContextMenu, "close", gameDefault);
+		game.addTransition(gameContextMenu, "endTurn", gameTurnEnd);
 		game.addTransition(gameContextMenu, "target", gameChooseTarget);
 		game.addTransition(gameChooseTarget, "close", gameDefault);
 		game.addTransition(gameChooseTarget, "battle", gameBattle);
 		game.addTransition(gameBattle, "finished", gameDefault);
+		game.addTransition(gameTurnEnd, "nextTurn", gameDefault);
 		game.setStart(gameDefault);
-		gameState.addTransition(editor, "toMenu", mainmenu);
-		gameState.addTransition(mainmenu, "exit", exit);
+		gameState.addTransition(editor, "toMenu", mainMenu);
+		gameState.addTransition(mainMenu, "exit", exit);
 		gameState.setStart(loading);
 
 		commands = new Stack<>();
@@ -127,7 +132,7 @@ public class MyGdxGame extends ApplicationAdapter implements InputProcessor {
 		if (loading.equals(gameState.getCurrent())) {
 			//TODO load anything here
 			gameState.transition("loaded");
-		} else if (mainmenu.equals(gameState.getCurrent())) {
+		} else if (mainMenu.equals(gameState.getCurrent())) {
 			if (lastClick != null && lastClick[3] == Input.Buttons.LEFT) {
 				if (clickInBoundingBox(lastClick, 660, 1260, 900, 800)) {
 					gameState.transition("start");
@@ -165,16 +170,12 @@ public class MyGdxGame extends ApplicationAdapter implements InputProcessor {
 				planContainer = null;
 				for (Command command : plan) {
 					command.execute();
+					// add unit clean up and replanning?
 				}
 
-				//TODO code clone of line 299-- remove
-				for (Unit unit : current.getUnits()) {
-					if (unit.getOwner() == current.getPlayers().get(turnPlayer)) {
-						unit.endTurn();
-					}
-				}
-				commands.clear();
-				turnPlayer = (1 + turnPlayer) % current.getPlayers().size();
+				clearUnits();
+
+				gameState.transition("endTurn");
 			}
 		}
 		if (lastClick != null) {
@@ -216,17 +217,7 @@ public class MyGdxGame extends ApplicationAdapter implements InputProcessor {
 			commands.clear();
 			primarySelection.dealDamage(secondarySelection).execute();
 
-			List<Unit> toRemove = new LinkedList<>();
-			for (Unit unit : current.getUnits()){
-				if (unit.getHealth() <= 0){
-					//TODO destroy animation
-					toRemove.add(unit);
-				}
-			}
-			current.getUnits().removeAll(toRemove);
-			for (Unit unit : toRemove){
-				unit.destroy();
-			}
+			clearUnits();
 			range = null;
 			gameState.transition("finished");
 		}
@@ -238,7 +229,31 @@ public class MyGdxGame extends ApplicationAdapter implements InputProcessor {
 			}
 			contextMenu.draw();
 		}
+		if (gameTurnEnd.equals(gameState.getCurrent().getCurrent())){
+			for (Unit unit : current.getUnits()) {
+				if (unit.getOwner() == current.getPlayers().get(turnPlayer)) {
+					unit.endTurn();
+				}
+			}
+			commands.clear();
+			turnPlayer = (1 + turnPlayer) % current.getPlayers().size();
+			gameState.transition("nextTurn");
+		}
 		lastClick = null;
+	}
+
+	private void clearUnits() {
+		List<Unit> toRemove = new LinkedList<>();
+		for (Unit unit : current.getUnits()){
+			if (unit.getHealth() <= 0){
+				//TODO destroy animation
+				toRemove.add(unit);
+			}
+		}
+		current.getUnits().removeAll(toRemove);
+		for (Unit unit : toRemove){
+			unit.destroy();
+		}
 	}
 
 	private void handleGameDefault() {
@@ -263,8 +278,7 @@ public class MyGdxGame extends ApplicationAdapter implements InputProcessor {
 						switch (this.getClickedButton(x, y)) {
 							case 0:
 								primarySelection = unit;
-								range = new Range(current, unitPositions, unit.getWeapon().getMinDistance(), unit.getWeapon().getMaxDistance(),
-										unit.getPositionX(), unit.getPositionY(), unit.isWalking(), unit.isFlying(), unit.isSwimming(), true, unit.getOwner());
+								range = new Range(current, unitPositions, unit, true);
 								color = Color.BLUE;
 								selector = unit.getWeapon().target(current.getPlayers().get(turnPlayer));
 								game.transition("target");
@@ -300,15 +314,7 @@ public class MyGdxGame extends ApplicationAdapter implements InputProcessor {
 							}
 							break;
 						case 1:
-							for (Unit unit : current.getUnits()) {
-								if (unit.getOwner() == current.getPlayers().get(turnPlayer)) {
-									unit.endTurn();
-								}
-							}
-							commands.clear();
-							turnPlayer = (1 + turnPlayer) % current.getPlayers().size();
-							gameState.transition("close");
-							//TODO add State for end turn
+							gameState.transition("endTurn");
 							break;
 						case 2:
 							gameState.transition("close");

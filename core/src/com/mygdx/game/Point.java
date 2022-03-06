@@ -1,5 +1,7 @@
 package com.mygdx.game;
 
+import com.mygdx.game.units.Unit;
+
 import java.util.Objects;
 
 public class Point {
@@ -8,6 +10,10 @@ public class Point {
     public Point(int x, int y){
         this.x = x;
         this.y = y;
+    }
+
+    public Point(Unit unit) {
+        this(unit.getPositionX(), unit.getPositionY());
     }
 
     @Override
