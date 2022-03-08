@@ -5,6 +5,6 @@ import com.mygdx.game.units.weapons.Sword;
 
 public class Commander extends Unit{
     public Commander(Player owner, int positionX, int positionY) {
-        super(owner, "textures/Commander.png", 5, new Sword(2), positionX, positionY,true, false, false);
+        super(owner, "textures/Commander.png", 5, new Sword(2, 3), positionX, positionY,true, false, false);
     }
 }

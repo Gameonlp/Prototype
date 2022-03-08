@@ -13,6 +13,7 @@ public abstract class Unit {
     private Player owner;
     private Texture texture;
     private int healthPoints;
+    private int maxHealthPoints;
     private int movePoints;
     private int maxMovePoints;
     private int positionX;
@@ -30,6 +31,7 @@ public abstract class Unit {
         this.owner = owner;
         this.texture = new Texture(Gdx.files.internal(texturePath));
         this.healthPoints = healthPoints;
+        this.maxHealthPoints = healthPoints;
         this.movePoints = movePoints;
         this.maxMovePoints = movePoints;
         this.weapon = weapon;
@@ -167,5 +169,9 @@ public abstract class Unit {
                 ", canSwim=" + canSwim +
                 ", weapon=" + weapon +
                 '}';
+    }
+
+    public int getMaxHealthPoints() {
+        return maxHealthPoints;
     }
 }

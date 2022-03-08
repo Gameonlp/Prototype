@@ -15,10 +15,12 @@ public class Sword extends Weapon{
     private int baseDamage;
     private final Random random = new Random();
     private List<Sound> sounds;
+    private int damageRange;
 
-    public Sword(int baseDamage){
+    public Sword(int baseDamage, int damageRange){
         super(1, 1);
         this.baseDamage = baseDamage;
+        this.damageRange = damageRange;
         sounds = new LinkedList<>();
         for (int i = 1; i <= 7; i++) {
             try {
@@ -31,7 +33,7 @@ public class Sword extends Weapon{
 
     @Override
     public void dealDamage(Unit user, Unit target) {
-        target.reduceHealth(baseDamage);
+        target.reduceHealth(baseDamage + random.nextInt(damageRange + 1));
         try {
             sounds.get(sounds.size() - 1 - random.nextInt(sounds.size())).play();
         } catch (IndexOutOfBoundsException e){

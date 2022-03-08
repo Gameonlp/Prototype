@@ -32,7 +32,7 @@ import java.util.*;
 public class MyGdxGame extends ApplicationAdapter implements InputProcessor {
 	private static final Logger LOGGER = new Logger(MyGdxGame.class.getName());
 
-	private SettingsManager settings = SettingsManager.getInstance();
+	private final SettingsManager settings = SettingsManager.getInstance();
 
 	SpriteBatch batch;
 	BitmapFont font;
@@ -293,7 +293,7 @@ public class MyGdxGame extends ApplicationAdapter implements InputProcessor {
 		primarySelection.dealDamage(secondarySelection).execute();
 		Range revengeRange = new Range(current, unitPositions, secondarySelection, secondarySelection.getWeapon());
 		int distance = revengeRange.getDistance(new Point(primarySelection));
-		if (distance >= 0 && distance < Integer.MAX_VALUE){
+		if (secondarySelection.getHealth() > 0 && distance >= 0 && distance < Integer.MAX_VALUE){
 			secondarySelection.revenge(primarySelection).execute();
 		}
 
@@ -431,6 +431,8 @@ public class MyGdxGame extends ApplicationAdapter implements InputProcessor {
 				}
 			}
 		}
+		font.setColor(Color.RED);
+		font.getData().setScale(1f);
 		for (Unit unit : current.getUnits()) {
 			int distance = Integer.MAX_VALUE;
 			batch.setColor(unit.getOwner().getPlayerColor());
@@ -444,6 +446,8 @@ public class MyGdxGame extends ApplicationAdapter implements InputProcessor {
 				batch.setColor(Color.GRAY);
 			}
 			batch.draw(unit.getTexture(), unit.getPositionX() * 64,unit.getPositionY() * 64, 64, 64);
+			String life = unit.getHealth() + "/" + unit.getMaxHealthPoints();
+			font.draw(batch, life, unit.getPositionX() * 64 + 64 - 30,unit.getPositionY() * 64 + font.getCapHeight());
 			batch.setColor(Color.WHITE);
 		}
 		//TODO add round Counter
