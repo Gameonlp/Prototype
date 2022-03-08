@@ -92,7 +92,7 @@ public class GameMap {
                         for (int i = 0; i < width; i++) {
                             Tile tile = tileAtlas[Integer.parseInt(entries[i])];
                             map[width * lineNumber + i] = tile;
-                            uniqueTextures.put(tile, new Texture(Gdx.files.internal(tile.texturePath)));
+                            uniqueTextures.put(tile, new Texture(Gdx.files.internal(tile.getTexturePath())));
                         }
                         lineNumber++;
                         break;

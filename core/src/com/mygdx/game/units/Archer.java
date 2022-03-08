@@ -1,7 +1,7 @@
 package com.mygdx.game.units;
 
 import com.mygdx.game.player.Player;
-import com.mygdx.game.weapons.Bow;
+import com.mygdx.game.units.weapons.Bow;
 
 public class Archer extends Unit{
     public Archer(Player owner, int positionX, int positionY){

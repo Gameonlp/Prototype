@@ -10,15 +10,22 @@ import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.utils.Logger;
 import com.badlogic.gdx.utils.ScreenUtils;
+import com.badlogic.gdx.utils.Timer;
 import com.badlogic.gdx.utils.async.AsyncExecutor;
 import com.badlogic.gdx.utils.async.AsyncResult;
+import com.mygdx.game.logic.Command;
+import com.mygdx.game.logic.HierarchicalStateMachine;
+import com.mygdx.game.logic.State;
+import com.mygdx.game.logic.UndoableCommand;
 import com.mygdx.game.player.Player;
 import com.mygdx.game.player.aiplayer.AIPlayer;
 import com.mygdx.game.player.aiplayer.strategy.plan.AttackStep;
 import com.mygdx.game.player.aiplayer.strategy.plan.MoveStep;
 import com.mygdx.game.player.aiplayer.strategy.plan.Plan;
-import com.mygdx.game.player.aiplayer.strategy.plan.Step;
 import com.mygdx.game.units.Unit;
+import com.mygdx.game.util.Point;
+import com.mygdx.game.util.Range;
+import com.mygdx.game.units.Selector;
 
 import java.util.*;
 
@@ -49,6 +56,7 @@ public class MyGdxGame extends ApplicationAdapter implements InputProcessor {
 	private final State gameChooseTarget;
 	private final State gameBattle;
 	private final State gameTurnEnd;
+	private final State gameTurnStart;
 	private final HierarchicalStateMachine editor;
 	private final State exit;
 
@@ -66,6 +74,10 @@ public class MyGdxGame extends ApplicationAdapter implements InputProcessor {
 	private Texture close;
 
 	int turnPlayer = 0;
+	int turn = 1;
+
+	boolean nextStep = true;
+	Plan plan = null;
 	AsyncResult<Plan> planContainer = null;
 	AsyncExecutor Planner = new AsyncExecutor(4);
 
@@ -83,6 +95,7 @@ public class MyGdxGame extends ApplicationAdapter implements InputProcessor {
 		gameChooseTarget = new State("target");
 		gameBattle = new State("battle");
 		gameTurnEnd = new State("turnEnd");
+		gameTurnStart = new State("turnStart");
 		editor = new HierarchicalStateMachine("editor", false);
 		exit = new State("exit");
 		gameState.addTransition(loading, "loaded", mainMenu);
@@ -99,8 +112,9 @@ public class MyGdxGame extends ApplicationAdapter implements InputProcessor {
 		game.addTransition(gameChooseTarget, "close", gameDefault);
 		game.addTransition(gameChooseTarget, "battle", gameBattle);
 		game.addTransition(gameBattle, "finished", gameDefault);
-		game.addTransition(gameTurnEnd, "nextTurn", gameDefault);
-		game.setStart(gameDefault);
+		game.addTransition(gameTurnEnd, "nextTurn", gameTurnStart);
+		game.addTransition(gameTurnStart, "start", gameDefault);
+		game.setStart(gameTurnStart);
 		gameState.addTransition(editor, "toMenu", mainMenu);
 		gameState.addTransition(mainMenu, "exit", exit);
 		gameState.setStart(loading);
@@ -163,30 +177,41 @@ public class MyGdxGame extends ApplicationAdapter implements InputProcessor {
 
 	private void handleGame() {
 		Player currentPlayer = current.getPlayers().get(turnPlayer);
-		System.out.println(currentPlayer);
-		if (currentPlayer.getPlayerType() == Player.PlayerType.AI){
-			if (planContainer == null) {
+		if (currentPlayer.getPlayerType() == Player.PlayerType.AI
+				&& gameDefault.equals(gameState.getCurrent().getCurrent())){
+			if (planContainer == null && plan == null) {
 				planContainer = Planner.submit(() -> ((AIPlayer) currentPlayer).handleTurn(current, unitPositions));
 			}
-			if (planContainer.isDone()) {
-				Plan plan = planContainer.get();
+			if (planContainer != null && planContainer.isDone()) {
+				plan = planContainer.get();
 				planContainer = null;
-				plan.executeForAll(step -> {
+			}
+			if (plan != null && nextStep){
+				nextStep = false;
+				if(!plan.executeNext(step -> {
 					Command command = null;
 					if (step.getType().equals("move")){
 						MoveStep current = (MoveStep) step;
+						primarySelection = null;
+						range = null;
 						command = current.toMove.move(current.moveTo);
 					}
 					else if (step.getType().equals("attack")){
 						AttackStep current = (AttackStep) step;
-						command = current.attacker.dealDamage(current.target);
+						primarySelection = current.attacker;
+						secondarySelection = current.target;
+						range = null;
+						handleBattle();
 					}
 					if (command != null) {
 						command.execute();
 					}
-				});
+				})){
+					plan = null;
+					gameState.transition("endTurn");
+				}
 				clearUnits();
-				gameState.transition("endTurn");
+				Timer.schedule(new Timer.Task() {@Override public void run() {nextStep = true;}}, 2.0f);
 			}
 		}
 		if (lastClick != null) {
@@ -209,7 +234,7 @@ public class MyGdxGame extends ApplicationAdapter implements InputProcessor {
 				}
 			} else if (gameChooseTarget.equals(gameState.getCurrent().getCurrent())){
 				Unit unit = unitPositions.get(new Point(lastClick[0] / 64, (1080 - lastClick[1]) / 64));
-				if (unit != null && selector.select(unit) && range.getDistance(lastClick[0] / 64, (1080 - lastClick[1]) / 64) >= 0
+				if (primarySelection.getOwner() == currentPlayer && unit != null && selector.select(unit) && range.getDistance(lastClick[0] / 64, (1080 - lastClick[1]) / 64) >= 0
 						&& range.getDistance(lastClick[0] / 64, (1080 - lastClick[1]) / 64) < Integer.MAX_VALUE
 						&& lastClick[3] == Input.Buttons.LEFT) {
 					gameState.transition("battle");
@@ -224,12 +249,7 @@ public class MyGdxGame extends ApplicationAdapter implements InputProcessor {
 		}
 		renderGame(range, color, selector);
 		if (gameBattle.equals(gameState.getCurrent().getCurrent())){
-			//TODO battle animation
-			commands.clear();
-			primarySelection.dealDamage(secondarySelection).execute();
-
-			clearUnits();
-			range = null;
+			handleBattle();
 			gameState.transition("finished");
 		}
 		if (gameContextMenu.equals(gameState.getCurrent().getCurrent())){
@@ -248,9 +268,37 @@ public class MyGdxGame extends ApplicationAdapter implements InputProcessor {
 			}
 			commands.clear();
 			turnPlayer = (1 + turnPlayer) % current.getPlayers().size();
+			lastClick = null;
+			turn += 1;
 			gameState.transition("nextTurn");
 		}
+		if (gameTurnStart.equals(gameState.getCurrent().getCurrent())){
+			renderStartCard();
+			if(lastClick != null) {
+				gameState.transition("start");
+			}
+		}
 		lastClick = null;
+	}
+
+	private void renderStartCard() {
+		font.setColor(Color.WHITE);
+		font.getData().setScale(10f);
+		font.draw(batch, "Turn " + turn, 500, 600);
+	}
+
+	private void handleBattle() {
+		//TODO battle animation
+		commands.clear();
+		primarySelection.dealDamage(secondarySelection).execute();
+		Range revengeRange = new Range(current, unitPositions, secondarySelection, secondarySelection.getWeapon());
+		int distance = revengeRange.getDistance(new Point(primarySelection));
+		if (distance >= 0 && distance < Integer.MAX_VALUE){
+			secondarySelection.revenge(primarySelection).execute();
+		}
+
+		clearUnits();
+		range = null;
 	}
 
 	private void clearUnits() {
@@ -278,7 +326,9 @@ public class MyGdxGame extends ApplicationAdapter implements InputProcessor {
 			range = new Range(current, unitPositions, unit.getMovePoints(), unit.getPositionX(), unit.getPositionY(), true, false, false, unit.getOwner());
 			color = Color.GREEN;
 			primarySelection = unit;
-			gameState.transition("click");
+			if (current.getPlayers().get(turnPlayer).getPlayerType() == Player.PlayerType.HUMAN) {
+				gameState.transition("click");
+			}
 		} else if (unit != null
 				&& lastClick[3] == Input.Buttons.RIGHT) {
 			gameState.transition("context");
@@ -289,10 +339,12 @@ public class MyGdxGame extends ApplicationAdapter implements InputProcessor {
 						switch (this.getClickedButton(x, y)) {
 							case 0:
 								primarySelection = unit;
-								range = new Range(current, unitPositions, unit, true);
+								range = new Range(current, unitPositions, unit, unit.getWeapon());
 								color = Color.BLUE;
 								selector = unit.getWeapon().target(current.getPlayers().get(turnPlayer));
-								game.transition("target");
+								if (current.getPlayers().get(turnPlayer).getPlayerType() == Player.PlayerType.HUMAN) {
+									game.transition("target");
+								}
 								break;
 							case 1:
 								gameState.transition("close");
@@ -319,13 +371,17 @@ public class MyGdxGame extends ApplicationAdapter implements InputProcessor {
 				public void clickMenu(int x, int y) {
 					switch (this.getClickedButton(x, y)){
 						case 0:
-							if (!commands.empty()) {
-								UndoableCommand lastCommand = commands.pop();
-								lastCommand.undo();
+							if (current.getPlayers().get(turnPlayer).getPlayerType() == Player.PlayerType.HUMAN) {
+								if (!commands.empty()) {
+									UndoableCommand lastCommand = commands.pop();
+									lastCommand.undo();
+								}
 							}
 							break;
 						case 1:
-							gameState.transition("endTurn");
+							if (current.getPlayers().get(turnPlayer).getPlayerType() == Player.PlayerType.HUMAN) {
+								gameState.transition("endTurn");
+							}
 							break;
 						case 2:
 							gameState.transition("close");

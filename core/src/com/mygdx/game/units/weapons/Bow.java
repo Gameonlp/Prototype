@@ -1,11 +1,11 @@
-package com.mygdx.game.weapons;
+package com.mygdx.game.units.weapons;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.utils.GdxRuntimeException;
 import com.badlogic.gdx.utils.Timer;
 import com.mygdx.game.player.Player;
-import com.mygdx.game.Selector;
+import com.mygdx.game.units.Selector;
 import com.mygdx.game.units.Unit;
 
 import java.util.LinkedList;

@@ -1,9 +1,8 @@
 package com.mygdx.game.player.aiplayer.strategy;
 
-import com.mygdx.game.Command;
 import com.mygdx.game.GameMap;
-import com.mygdx.game.Point;
-import com.mygdx.game.Range;
+import com.mygdx.game.util.Point;
+import com.mygdx.game.util.Range;
 import com.mygdx.game.player.Player;
 import com.mygdx.game.player.aiplayer.strategy.plan.MoveStep;
 import com.mygdx.game.player.aiplayer.strategy.plan.NopStep;

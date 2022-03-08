@@ -2,7 +2,7 @@ package com.mygdx.game.player.aiplayer;
 
 import com.badlogic.gdx.graphics.Color;
 import com.mygdx.game.GameMap;
-import com.mygdx.game.Point;
+import com.mygdx.game.util.Point;
 import com.mygdx.game.player.Player;
 import com.mygdx.game.player.aiplayer.strategy.plan.Plan;
 import com.mygdx.game.player.aiplayer.strategy.Strategy;

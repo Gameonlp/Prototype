@@ -1,7 +1,5 @@
 package com.mygdx.game.player.aiplayer.strategy.plan;
 
-import com.mygdx.game.Command;
-
 import java.util.LinkedList;
 import java.util.List;
 
@@ -89,6 +87,14 @@ public class Plan{
             list.add(tree);
         }
         planTree.subTrees = list;
+    }
+
+    public boolean executeNext(PlanExecutor executor){
+        if (planTree != null){
+            executor.execute(planTree.step);
+            planTree = planTree.matchingSubTree();
+        }
+        return planTree != null;
     }
 
     public void executeForAll(PlanExecutor executor){

@@ -1,9 +1,7 @@
 package com.mygdx.game.player.aiplayer.strategy.plan;
 
-import com.mygdx.game.Point;
+import com.mygdx.game.util.Point;
 import com.mygdx.game.units.Unit;
-
-import java.util.Map;
 
 public class MoveStep extends Step{
     public Unit toMove;

@@ -1,6 +1,5 @@
 package com.mygdx.game.player.aiplayer.strategy.plan;
 
-import com.mygdx.game.Point;
 import com.mygdx.game.units.Unit;
 
 public class AttackStep extends Step{

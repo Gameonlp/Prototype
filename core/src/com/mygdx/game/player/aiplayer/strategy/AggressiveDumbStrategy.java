@@ -1,9 +1,8 @@
 package com.mygdx.game.player.aiplayer.strategy;
 
-import com.mygdx.game.Command;
 import com.mygdx.game.GameMap;
-import com.mygdx.game.Point;
-import com.mygdx.game.Range;
+import com.mygdx.game.util.Point;
+import com.mygdx.game.util.Range;
 import com.mygdx.game.player.Player;
 import com.mygdx.game.player.aiplayer.strategy.plan.AttackStep;
 import com.mygdx.game.player.aiplayer.strategy.plan.Condition;
@@ -26,6 +25,14 @@ public class AggressiveDumbStrategy implements Strategy{
         @Override
         public int compareTo(PointDistanceTuple other) {
             return this.distance - other.distance;
+        }
+
+        @Override
+        public String toString() {
+            return "PointDistanceTuple{" +
+                    "point=" + point +
+                    ", distance=" + distance +
+                    '}';
         }
     }
 
@@ -57,7 +64,7 @@ public class AggressiveDumbStrategy implements Strategy{
         List<PointDistanceTuple> attackDistance = new LinkedList<>();
         for (Point point : reachable){
             List<Integer> distances = new LinkedList<>();
-            Range attackable = new Range(map, unitPositions, point, unit, true);
+            Range attackable = new Range(map, unitPositions, point, unit, unit.getWeapon());
             for (Point enemy : enemyUnits){
                 distances.add(Math.abs(attackable.getDistance(enemy)));
             }
@@ -68,10 +75,11 @@ public class AggressiveDumbStrategy implements Strategy{
             }
         }
         attackDistance.sort(null);
+        System.out.println(attackDistance);
         Point newPosition = attackDistance.get(0).point;
         plan.setStep(new MoveStep(unit, attackDistance.get(0).point));
         Plan attackPlan = new Plan();
-        Range attackable = new Range(map, unitPositions, newPosition, unit, true);
+        Range attackable = new Range(map, unitPositions, newPosition, unit, unit.getWeapon());
         List<Unit> restUnits = new LinkedList<>(units);
         restUnits.remove(0);
         for (Point point : enemyUnits){

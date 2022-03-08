@@ -2,14 +2,11 @@ package com.mygdx.game.units;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
-import com.mygdx.game.Command;
+import com.mygdx.game.logic.Command;
 import com.mygdx.game.player.Player;
-import com.mygdx.game.Point;
-import com.mygdx.game.UndoableCommand;
-import com.mygdx.game.weapons.Weapon;
-import org.w3c.dom.ranges.Range;
-
-import java.util.List;
+import com.mygdx.game.util.Point;
+import com.mygdx.game.logic.UndoableCommand;
+import com.mygdx.game.units.weapons.Weapon;
 
 public abstract class Unit {
     private boolean hasAttacked;
@@ -123,13 +120,21 @@ public abstract class Unit {
     }
 
     public Command dealDamage(Unit target){
-        System.out.println(this + " " + target);
         Unit attacker = this;
         return () -> {
             if (target != null) {
                 attacker.hasAttacked = true;
                 weapon.dealDamage(attacker, target);
                 attacker.movePoints = 0;
+            }
+        };
+    }
+
+    public Command revenge(Unit target){
+        Unit attacker = this;
+        return () -> {
+            if (target != null) {
+                weapon.dealDamage(attacker, target);
             }
         };
     }
