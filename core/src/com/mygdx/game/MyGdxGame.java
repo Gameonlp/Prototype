@@ -24,6 +24,7 @@ import com.mygdx.game.player.aiplayer.strategy.plan.MoveStep;
 import com.mygdx.game.player.aiplayer.strategy.plan.Plan;
 import com.mygdx.game.units.Unit;
 import com.mygdx.game.util.Point;
+import com.mygdx.game.util.PointDistanceTuple;
 import com.mygdx.game.util.Range;
 import com.mygdx.game.units.Selector;
 
@@ -43,7 +44,7 @@ public class MyGdxGame extends ApplicationAdapter implements InputProcessor {
 	Texture configButton;
 	Texture exitButton;
 
-	GameMap current;
+	GameMap currentMap;
 
 	//State Machine for Game States
 	private final HierarchicalStateMachine gameState;
@@ -63,6 +64,7 @@ public class MyGdxGame extends ApplicationAdapter implements InputProcessor {
 	private Stack<UndoableCommand> commands;
 
 	private Range range;
+	private Point[] path;
 	private Color color;
 	private Selector selector;
 	private Unit primarySelection;
@@ -73,6 +75,8 @@ public class MyGdxGame extends ApplicationAdapter implements InputProcessor {
 	private Texture attack;
 	private Texture close;
 
+	private Texture arrows;
+
 	int turnPlayer = 0;
 	int turn = 1;
 
@@ -82,6 +86,7 @@ public class MyGdxGame extends ApplicationAdapter implements InputProcessor {
 	AsyncExecutor Planner = new AsyncExecutor(4);
 
 	int[] lastClick;
+	int[] mousePos;
 
 	public MyGdxGame(){
 		gameState = new HierarchicalStateMachine("gameStates");
@@ -126,7 +131,7 @@ public class MyGdxGame extends ApplicationAdapter implements InputProcessor {
 	public void create () {
 		batch = new SpriteBatch();
 		font = new BitmapFont();
-		current = GameMap.loadMap(Gdx.files.internal("maps/test.map").path());
+		currentMap = GameMap.loadMap(Gdx.files.internal("maps/test.map").path());
 		unitPositions = new HashMap<>();
 
 		startButton = new Texture(Gdx.files.internal("textures/Start.png"));
@@ -138,6 +143,7 @@ public class MyGdxGame extends ApplicationAdapter implements InputProcessor {
 		next = new Texture(Gdx.files.internal("textures/Next.png"));
 		attack = new Texture(Gdx.files.internal("textures/Attack.png"));
 		close = new Texture(Gdx.files.internal("textures/Close.png"));
+		arrows = new Texture(Gdx.files.internal("textures/Arrows.png"));
 
 		Gdx.input.setInputProcessor(this);
 		LOGGER.setLevel(Logger.DEBUG);
@@ -176,11 +182,11 @@ public class MyGdxGame extends ApplicationAdapter implements InputProcessor {
 	}
 
 	private void handleGame() {
-		Player currentPlayer = current.getPlayers().get(turnPlayer);
+		Player currentPlayer = currentMap.getPlayers().get(turnPlayer);
 		if (currentPlayer.getPlayerType() == Player.PlayerType.AI
 				&& gameDefault.equals(gameState.getCurrent().getCurrent())){
 			if (planContainer == null && plan == null) {
-				planContainer = Planner.submit(() -> ((AIPlayer) currentPlayer).handleTurn(current, unitPositions));
+				planContainer = Planner.submit(() -> ((AIPlayer) currentPlayer).handleTurn(currentMap, unitPositions));
 			}
 			if (planContainer != null && planContainer.isDone()) {
 				plan = planContainer.get();
@@ -211,7 +217,7 @@ public class MyGdxGame extends ApplicationAdapter implements InputProcessor {
 					gameState.transition("endTurn");
 				}
 				clearUnits();
-				Timer.schedule(new Timer.Task() {@Override public void run() {nextStep = true;}}, 2.0f);
+				Timer.schedule(new Timer.Task() {@Override public void run() {nextStep = true;}}, 1.0f);
 			}
 		}
 		if (lastClick != null) {
@@ -222,6 +228,7 @@ public class MyGdxGame extends ApplicationAdapter implements InputProcessor {
 						&& range.getDistance(lastClick[0] / 64, (1080 - lastClick[1]) / 64) < Integer.MAX_VALUE
 						&& lastClick[3] == Input.Buttons.LEFT) {
 					range = null;
+					path = null;
 					gameState.transition("click");
 					UndoableCommand moveCommand = primarySelection.move(lastClick[0] / 64, (1080 - lastClick[1]) / 64);
 					moveCommand.execute();
@@ -230,6 +237,7 @@ public class MyGdxGame extends ApplicationAdapter implements InputProcessor {
 						&& range.getDistance(lastClick[0] / 64, (1080 - lastClick[1]) / 64) < Integer.MAX_VALUE
 						&& lastClick[3] == Input.Buttons.RIGHT){
 					range = null;
+					path = null;
 					gameState.transition("click");
 				}
 			} else if (gameChooseTarget.equals(gameState.getCurrent().getCurrent())){
@@ -261,13 +269,13 @@ public class MyGdxGame extends ApplicationAdapter implements InputProcessor {
 			contextMenu.draw();
 		}
 		if (gameTurnEnd.equals(gameState.getCurrent().getCurrent())){
-			for (Unit unit : current.getUnits()) {
-				if (unit.getOwner() == current.getPlayers().get(turnPlayer)) {
+			for (Unit unit : currentMap.getUnits()) {
+				if (unit.getOwner() == currentMap.getPlayers().get(turnPlayer)) {
 					unit.endTurn();
 				}
 			}
 			commands.clear();
-			turnPlayer = (1 + turnPlayer) % current.getPlayers().size();
+			turnPlayer = (1 + turnPlayer) % currentMap.getPlayers().size();
 			lastClick = null;
 			turn += 1;
 			gameState.transition("nextTurn");
@@ -291,7 +299,7 @@ public class MyGdxGame extends ApplicationAdapter implements InputProcessor {
 		//TODO battle animation
 		commands.clear();
 		primarySelection.dealDamage(secondarySelection).execute();
-		Range revengeRange = new Range(current, unitPositions, secondarySelection, secondarySelection.getWeapon());
+		Range revengeRange = new Range(currentMap, unitPositions, secondarySelection, secondarySelection.getWeapon());
 		int distance = revengeRange.getDistance(new Point(primarySelection));
 		if (secondarySelection.getHealth() > 0 && distance >= 0 && distance < Integer.MAX_VALUE){
 			secondarySelection.revenge(primarySelection).execute();
@@ -303,13 +311,13 @@ public class MyGdxGame extends ApplicationAdapter implements InputProcessor {
 
 	private void clearUnits() {
 		List<Unit> toRemove = new LinkedList<>();
-		for (Unit unit : current.getUnits()){
+		for (Unit unit : currentMap.getUnits()){
 			if (unit.getHealth() <= 0){
 				//TODO destroy animation
 				toRemove.add(unit);
 			}
 		}
-		current.getUnits().removeAll(toRemove);
+		currentMap.getUnits().removeAll(toRemove);
 		for (Unit unit : toRemove){
 			unit.destroy();
 		}
@@ -317,16 +325,18 @@ public class MyGdxGame extends ApplicationAdapter implements InputProcessor {
 
 	private void handleGameDefault() {
 		unitPositions.clear();
-		for (Unit unit : current.getUnits()){
+		for (Unit unit : currentMap.getUnits()){
 			unitPositions.put(new Point(unit.getPositionX(), unit.getPositionY()), unit);
 		}
 		Unit unit = unitPositions.get(clickedTile(lastClick));
 		if (unit != null
 				&& lastClick[3] == Input.Buttons.LEFT && unit.getMovePoints() > 0) {
-			range = new Range(current, unitPositions, unit.getMovePoints(), unit.getPositionX(), unit.getPositionY(), true, false, false, unit.getOwner());
+			range = new Range(currentMap, unitPositions, unit.getMovePoints(), unit.getPositionX(), unit.getPositionY(), true, false, false, unit.getOwner());
+			path = new Point[unit.getMovePoints() + 1];
+			path[0] = new Point(unit);
 			color = Color.GREEN;
 			primarySelection = unit;
-			if (current.getPlayers().get(turnPlayer).getPlayerType() == Player.PlayerType.HUMAN) {
+			if (currentMap.getPlayers().get(turnPlayer).getPlayerType() == Player.PlayerType.HUMAN) {
 				gameState.transition("click");
 			}
 		} else if (unit != null
@@ -339,10 +349,10 @@ public class MyGdxGame extends ApplicationAdapter implements InputProcessor {
 						switch (this.getClickedButton(x, y)) {
 							case 0:
 								primarySelection = unit;
-								range = new Range(current, unitPositions, unit, unit.getWeapon());
+								range = new Range(currentMap, unitPositions, unit, unit.getWeapon());
 								color = Color.BLUE;
-								selector = unit.getWeapon().target(current.getPlayers().get(turnPlayer));
-								if (current.getPlayers().get(turnPlayer).getPlayerType() == Player.PlayerType.HUMAN) {
+								selector = unit.getWeapon().target(currentMap.getPlayers().get(turnPlayer));
+								if (currentMap.getPlayers().get(turnPlayer).getPlayerType() == Player.PlayerType.HUMAN) {
 									game.transition("target");
 								}
 								break;
@@ -371,7 +381,7 @@ public class MyGdxGame extends ApplicationAdapter implements InputProcessor {
 				public void clickMenu(int x, int y) {
 					switch (this.getClickedButton(x, y)){
 						case 0:
-							if (current.getPlayers().get(turnPlayer).getPlayerType() == Player.PlayerType.HUMAN) {
+							if (currentMap.getPlayers().get(turnPlayer).getPlayerType() == Player.PlayerType.HUMAN) {
 								if (!commands.empty()) {
 									UndoableCommand lastCommand = commands.pop();
 									lastCommand.undo();
@@ -379,7 +389,7 @@ public class MyGdxGame extends ApplicationAdapter implements InputProcessor {
 							}
 							break;
 						case 1:
-							if (current.getPlayers().get(turnPlayer).getPlayerType() == Player.PlayerType.HUMAN) {
+							if (currentMap.getPlayers().get(turnPlayer).getPlayerType() == Player.PlayerType.HUMAN) {
 								gameState.transition("endTurn");
 							}
 							break;
@@ -398,7 +408,7 @@ public class MyGdxGame extends ApplicationAdapter implements InputProcessor {
 	}
 
 	private Point clickedTile(int[] lastClick){
-		return new Point(lastClick[0] / 64, current.getHeight() - lastClick[1] / 64 - 1);
+		return new Point(lastClick[0] / 64, currentMap.getHeight() - lastClick[1] / 64 - 1);
 	}
 
 	private void renderMenu() {
@@ -409,9 +419,9 @@ public class MyGdxGame extends ApplicationAdapter implements InputProcessor {
 	}
 
 	public void renderGame(Range range, Color color, Selector selector){
-		int height = current.getHeight();
-		for(int y = 0; y < current.getHeight(); y++){
-			for(int x = 0; x < current.getWidth(); x++){
+		int height = currentMap.getHeight();
+		for(int y = 0; y < currentMap.getHeight(); y++){
+			for(int x = 0; x < currentMap.getWidth(); x++){
 				int distance = Integer.MAX_VALUE;
 				if (range != null) {
 					distance = range.getDistance(x, height - y - 1);
@@ -419,7 +429,7 @@ public class MyGdxGame extends ApplicationAdapter implements InputProcessor {
 				if (distance < Integer.MAX_VALUE && distance >= 0) {
 					batch.setColor(color);
 				}
-				batch.draw(current.getTexture(x, y), 64 * x, 64 * (height - y - 1), 64, 64);
+				batch.draw(currentMap.getTexture(x, y), 64 * x, 64 * (height - y - 1), 64, 64);
 				batch.setColor(Color.WHITE);
 				if (settings.getBooleanSetting("DebugShowDistances") && range != null) {
 					font.setColor(Color.BLUE);
@@ -433,7 +443,7 @@ public class MyGdxGame extends ApplicationAdapter implements InputProcessor {
 		}
 		font.setColor(Color.RED);
 		font.getData().setScale(1f);
-		for (Unit unit : current.getUnits()) {
+		for (Unit unit : currentMap.getUnits()) {
 			int distance = Integer.MAX_VALUE;
 			batch.setColor(unit.getOwner().getPlayerColor());
 			if (range != null) {
@@ -450,7 +460,119 @@ public class MyGdxGame extends ApplicationAdapter implements InputProcessor {
 			font.draw(batch, life, unit.getPositionX() * 64 + 64 - 30,unit.getPositionY() * 64 + font.getCapHeight());
 			batch.setColor(Color.WHITE);
 		}
+
+		if (range != null) {
+			Point mousePoint = new Point(mousePos[0] / 64, (1080 - mousePos[1]) / 64);
+			int distance = range.getDistance(mousePoint);
+			for (int i = 0; path != null && i <= path.length; i++) {
+				if (!mousePoint.equals(path[0]) && !(distance >= 0 && (distance < Integer.MAX_VALUE || unitPositions.containsKey(mousePoint) && unitPositions.get(mousePoint).getOwner().equals(currentMap.getPlayers().get(turnPlayer))))) {
+					break;
+				} else if (i == path.length) {
+					Arrays.fill(path, 1, path.length, null);
+					calculatePath(mousePoint, path.length);
+					break;
+				} else if (path[i] == null && Math.abs(path[i - 1].x - mousePoint.x) + Math.abs(path[i - 1].y - mousePoint.y) == 1) {
+					path[i] = mousePoint;
+					break;
+				} else if (path[i] == null) {
+					Arrays.fill(path, 1, path.length, null);
+					calculatePath(mousePoint, path.length);
+					break;
+				} else if (path[i].equals(mousePoint)) {
+					for (int j = i + 1; j < path.length; j++){
+						path[j] = null;
+					}
+					break;
+				}
+			}
+		}
+		if (path != null) {
+			System.out.println(Arrays.toString(path));
+		}
+		drawPath();
 		//TODO add round Counter
+	}
+
+	private void drawPath() {
+		for (int i = 1; path != null && i < path.length && path[i] != null; i++) {
+			if (path[i].y - path[i - 1].y == 1 && (i + 1 < path.length && path[i + 1] != null && path[i + 1].y - path[i].y == 1)) {
+				batch.draw(arrows, path[i].x * 64, path[i].y * 64, 0, 0, 64, 64);
+			} else if (path[i].y - path[i - 1].y == -1 && (i + 1 < path.length && path[i + 1] != null && path[i + 1].y - path[i].y == -1)){
+					batch.draw(arrows, path[i].x * 64, path[i].y * 64, 0, 0, 64, 64);
+			} else if (path[i].x - path[i - 1].x == 1 && (i + 1 < path.length && path[i + 1] != null && path[i + 1].x - path[i].x == 1)){
+				batch.draw(arrows, path[i].x * 64, path[i].y * 64, 64, 0, 64, 64);
+			} else if (path[i].x - path[i - 1].x == -1 && (i + 1 < path.length && path[i + 1] != null && path[i + 1].x - path[i].x == -1)){
+				batch.draw(arrows, path[i].x * 64, path[i].y * 64, 64, 0, 64, 64);
+			} else if (path[i].x - path[i - 1].x == 1 && (i + 1 < path.length && path[i + 1] != null && path[i + 1].y - path[i].y == -1)){
+				batch.draw(arrows, path[i].x * 64, path[i].y * 64, 2 * 64, 0, 64, 64);
+			} else if (path[i].y - path[i - 1].y == 1 && (i + 1 < path.length && path[i + 1] != null && path[i + 1].x - path[i].x == -1)){
+				batch.draw(arrows, path[i].x * 64, path[i].y * 64, 2 * 64, 0, 64, 64);
+			} else if (path[i].x - path[i - 1].x == 1 && (i + 1 < path.length && path[i + 1] != null && path[i + 1].y - path[i].y == 1)){
+				batch.draw(arrows, path[i].x * 64, path[i].y * 64, 3 * 64, 0, 64, 64);
+			} else if (path[i].y - path[i - 1].y == -1 && (i + 1 < path.length && path[i + 1] != null && path[i + 1].x - path[i].x == -1)){
+				batch.draw(arrows, path[i].x * 64, path[i].y * 64, 3 * 64, 0, 64, 64);
+			} else if (path[i].x - path[i - 1].x == -1 && (i + 1 < path.length && path[i + 1] != null && path[i + 1].y - path[i].y == 1)){
+				batch.draw(arrows, path[i].x * 64, path[i].y * 64, 4 * 64, 0, 64, 64);
+			} else if (path[i].y - path[i - 1].y == -1 && (i + 1 < path.length && path[i + 1] != null && path[i + 1].x - path[i].x == 1)){
+				batch.draw(arrows, path[i].x * 64, path[i].y * 64, 4 * 64, 0, 64, 64);
+			} else if (path[i].x - path[i - 1].x == -1 && (i + 1 < path.length && path[i + 1] != null && path[i + 1].y - path[i].y == -1)){
+				batch.draw(arrows, path[i].x * 64, path[i].y * 64, 5 * 64, 0, 64, 64);
+			} else if (path[i].y - path[i - 1].y == 1 && (i + 1 < path.length && path[i + 1] != null && path[i + 1].x - path[i].x == 1)){
+				batch.draw(arrows, path[i].x * 64, path[i].y * 64, 5 * 64, 0, 64, 64);
+			} else if (path[i].y - path[i - 1].y == 1){
+				batch.draw(arrows, path[i].x * 64, path[i].y * 64, 6 * 64, 0, 64, 64);
+			} else if (path[i].x - path[i - 1].x == 1){
+				batch.draw(arrows, path[i].x * 64, path[i].y * 64, 7 * 64, 0, 64, 64);
+			} else if (path[i].y - path[i - 1].y == -1){
+				batch.draw(arrows, path[i].x * 64, path[i].y * 64, 8 * 64, 0, 64, 64);
+			} else if (path[i].x - path[i - 1].x == -1){
+				batch.draw(arrows, path[i].x * 64, path[i].y * 64, 9 * 64, 0, 64, 64);
+			}
+		}
+	}
+
+	private void calculatePath(Point point, int distance){
+		PriorityQueue<List<PointDistanceTuple>> toCheck = new PriorityQueue<>((o1, o2) -> {
+			int dist1 = o1.get(0).getDistance() + Math.abs(o1.get(0).getPoint().x - path[0].x) + Math.abs(o1.get(0).getPoint().y - path[0].y);
+			int dist2 = o2.get(0).getDistance() + Math.abs(o2.get(0).getPoint().x - path[0].x) + Math.abs(o2.get(0).getPoint().y - path[0].y);
+			return dist1 - dist2;
+		});
+		List<PointDistanceTuple> current = new LinkedList<>();
+		current.add(new PointDistanceTuple(point, 0));
+		toCheck.offer(current);
+		PointDistanceTuple currentPoint;
+		while (!toCheck.isEmpty()){
+			current = toCheck.poll();
+			currentPoint = current.get(0);
+			System.out.println(currentPoint.getDistance() + Math.abs(currentPoint.getPoint().x - path[0].x) + Math.abs(currentPoint.getPoint().y - path[0].y));
+			if (currentPoint.getPoint().equals(path[0])){
+				for (int i = 0; i < current.size(); i++) {
+					path[i] = current.get(i).getPoint();
+				}
+				return;
+			}
+			if (currentPoint.getDistance() <= distance && (range.getDistance(currentPoint.getPoint()) != Integer.MAX_VALUE
+					|| (unitPositions.get(currentPoint.getPoint()) != null
+						&& unitPositions.get(currentPoint.getPoint()).getOwner().equals(currentMap.getPlayers().get(turnPlayer))))){
+				Point y_less_point = new Point(currentPoint.getPoint().x, currentPoint.getPoint().y - 1);
+				checkAndAdd(y_less_point, currentPoint, current, toCheck);
+				Point y_more_point = new Point(currentPoint.getPoint().x, currentPoint.getPoint().y + 1);
+				checkAndAdd(y_more_point, currentPoint, current, toCheck);
+				Point x_less_point = new Point(currentPoint.getPoint().x - 1, currentPoint.getPoint().y);
+				checkAndAdd(x_less_point, currentPoint, current, toCheck);
+				Point x_more_point = new Point(currentPoint.getPoint().x + 1, currentPoint.getPoint().y);
+				checkAndAdd(x_more_point, currentPoint, current, toCheck);
+			}
+		}
+	}
+
+	private void checkAndAdd(Point point, PointDistanceTuple currentPoint, List<PointDistanceTuple> current, PriorityQueue<List<PointDistanceTuple>> toCheck) {
+		PointDistanceTuple pointDistanceTuple = new PointDistanceTuple(point, currentPoint.getDistance() + 1);
+		if (!current.contains(pointDistanceTuple)){
+			List<PointDistanceTuple> toAdd = new LinkedList<>(current);
+			toAdd.add(0, pointDistanceTuple);
+			toCheck.offer(toAdd);
+		}
 	}
 
 	@Override
@@ -461,7 +583,7 @@ public class MyGdxGame extends ApplicationAdapter implements InputProcessor {
 		editorButton.dispose();
 		configButton.dispose();
 		exitButton.dispose();
-		current.destroyMap();
+		currentMap.destroyMap();
 
 		undo.dispose();
 		next.dispose();
@@ -502,6 +624,7 @@ public class MyGdxGame extends ApplicationAdapter implements InputProcessor {
 
 	@Override
 	public boolean mouseMoved(int screenX, int screenY) {
+		mousePos = new int[]{screenX, screenY};
 		return false;
 	}
 

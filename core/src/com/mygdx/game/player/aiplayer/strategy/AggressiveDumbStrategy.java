@@ -2,6 +2,7 @@ package com.mygdx.game.player.aiplayer.strategy;
 
 import com.mygdx.game.GameMap;
 import com.mygdx.game.util.Point;
+import com.mygdx.game.util.PointDistanceTuple;
 import com.mygdx.game.util.Range;
 import com.mygdx.game.player.Player;
 import com.mygdx.game.player.aiplayer.strategy.plan.AttackStep;
@@ -13,29 +14,6 @@ import com.mygdx.game.units.Unit;
 import java.util.*;
 
 public class AggressiveDumbStrategy implements Strategy{
-    private static class PointDistanceTuple implements Comparable<PointDistanceTuple> {
-        private final Point point;
-        private final int distance;
-
-        public PointDistanceTuple(Point point, int distance){
-            this.point = point;
-            this.distance = distance;
-        }
-
-        @Override
-        public int compareTo(PointDistanceTuple other) {
-            return this.distance - other.distance;
-        }
-
-        @Override
-        public String toString() {
-            return "PointDistanceTuple{" +
-                    "point=" + point +
-                    ", distance=" + distance +
-                    '}';
-        }
-    }
-
     private Plan plan(List<Unit> units, Condition condition, Player owner, GameMap map, Map<Point, Unit> unitPositions){
         System.out.println(unitPositions);
         Plan plan = new Plan();
@@ -69,15 +47,15 @@ public class AggressiveDumbStrategy implements Strategy{
                 distances.add(Math.abs(attackable.getDistance(enemy)));
             }
             try {
-                attackDistance.add(new PointDistanceTuple(point ,Collections.min(distances)));
+                attackDistance.add(new PointDistanceTuple(point, Collections.min(distances)));
             } catch (NoSuchElementException e){
                 return plan;
             }
         }
         attackDistance.sort(null);
         System.out.println(attackDistance);
-        Point newPosition = attackDistance.get(0).point;
-        plan.setStep(new MoveStep(unit, attackDistance.get(0).point));
+        Point newPosition = attackDistance.get(0).getPoint();
+        plan.setStep(new MoveStep(unit, attackDistance.get(0).getPoint()));
         Plan attackPlan = new Plan();
         Range attackable = new Range(map, unitPositions, newPosition, unit, unit.getWeapon());
         List<Unit> restUnits = new LinkedList<>(units);

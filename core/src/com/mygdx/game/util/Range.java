@@ -12,7 +12,7 @@ public class Range {
         return getDistance(enemy.x, enemy.y);
     }
 
-    private class Distance{
+    private static class Distance{
         private final int dist;
         private final int x;
         private final int y;
@@ -34,7 +34,7 @@ public class Range {
     }
 
     private final GameMap map;
-    private Map<Point, Unit> units;
+    private final Map<Point, Unit> units;
     private final int minDistance;
     private final int maxDistance;
     private final int x;
@@ -43,11 +43,15 @@ public class Range {
     private final boolean canFly;
     private final boolean canSwim;
     private final boolean ignoreUnits;
-    private Player owner;
+    private final Player owner;
     private int[] reachable;
 
     public Range(GameMap map, Map<Point, Unit> units, Unit unit){
         this(map, units, unit.getMovePoints(), unit.getPositionX(), unit.getPositionY(), unit.isWalking(), unit.isFlying(), unit.isSwimming(), unit.getOwner());
+    }
+
+    public Range(GameMap map, Map<Point, Unit> units, Point point, Unit unit){
+        this(map, units, unit.getMovePoints(), point.x, point.y, unit.isWalking(), unit.isFlying(), unit.isSwimming(), unit.getOwner());
     }
 
     public Range(GameMap map, Map<Point, Unit> units, int maxDistance, int x, int y, boolean canWalk, boolean canFly, boolean canSwim, Player owner) {
