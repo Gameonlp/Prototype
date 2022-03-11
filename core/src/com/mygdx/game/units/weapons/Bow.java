@@ -4,10 +4,13 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.utils.GdxRuntimeException;
 import com.badlogic.gdx.utils.Timer;
+import com.mygdx.game.BattleSoundMessage;
+import com.mygdx.game.MessageQueue;
 import com.mygdx.game.RNG;
 import com.mygdx.game.player.Player;
 import com.mygdx.game.units.Selector;
 import com.mygdx.game.units.Unit;
+import com.mygdx.game.util.SoundFunction;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -46,17 +49,26 @@ public class Bow extends Weapon{
     public void dealDamage(Unit user, Unit target) {
         Random random = RNG.getInstance();
         target.reduceHealth(baseDamage + random.nextInt(damageRange + 1));
-        try {
-            bowSounds.get(bowSounds.size() - 1 - random.nextInt(bowSounds.size())).play();
-            Timer.schedule(new Timer.Task() {
-                @Override
-                public void run() {
-                    arrowSounds.get(arrowSounds.size() - 1 - random.nextInt(arrowSounds.size())).play();
-                }
-            }, 0.1f);
-        } catch (IndexOutOfBoundsException e){
-            // Asset did not exist
-        }
+    }
+
+    public SoundFunction getAttackSound(){
+        return () -> {
+            try
+            {
+                bowSounds.get(bowSounds.size() - 1 - random.nextInt(bowSounds.size())).play();
+                Timer.schedule(new Timer.Task() {
+                    @Override
+                    public void run() {
+                        arrowSounds.get(arrowSounds.size() - 1 - random.nextInt(arrowSounds.size())).play();
+                    }
+                }, 0.1f);
+            } catch(
+                    IndexOutOfBoundsException e)
+
+            {
+                // Asset did not exist
+            }
+        };
     }
 
     @Override

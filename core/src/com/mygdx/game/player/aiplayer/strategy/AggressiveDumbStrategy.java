@@ -15,7 +15,6 @@ import java.util.*;
 
 public class AggressiveDumbStrategy implements Strategy{
     private Plan plan(List<Unit> units, Condition condition, Player owner, GameMap map, Map<Point, Unit> unitPositions){
-        System.out.println(unitPositions);
         Plan plan = new Plan();
         if (units.isEmpty()){
             return plan;
@@ -53,7 +52,6 @@ public class AggressiveDumbStrategy implements Strategy{
             }
         }
         attackDistance.sort(null);
-        System.out.println(attackDistance);
         Point newPosition = attackDistance.get(0).getPoint();
         plan.setStep(new MoveStep(unit, attackDistance.get(0).getPoint()));
         Plan attackPlan = new Plan();

@@ -22,6 +22,7 @@ public abstract class Unit {
     private boolean canWalk;
     private boolean canSwim;
     private Weapon weapon;
+    private boolean draw;
 
     public Unit(Player owner, String texturePath, int movePoints, Weapon weapon, int positionX, int positionY, boolean canWalk, boolean canFly, boolean canSwim) {
         this(owner, texturePath, 10, movePoints, weapon, positionX, positionY, canWalk, canFly, canSwim);
@@ -41,6 +42,7 @@ public abstract class Unit {
         this.canWalk = canWalk;
         this.canSwim = canSwim;
         this.hasAttacked = false;
+        this.draw = true;
     }
 
     public  UndoableCommand move(Point point){
@@ -173,5 +175,13 @@ public abstract class Unit {
 
     public int getMaxHealthPoints() {
         return maxHealthPoints;
+    }
+
+    public boolean isDraw() {
+        return draw;
+    }
+
+    public void setDraw(boolean draw) {
+        this.draw = draw;
     }
 }

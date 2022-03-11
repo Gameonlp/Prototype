@@ -10,13 +10,8 @@ public class HierarchicalStateMachine {
 
     private HierarchicalStateMachine current;
     private final TransitionFunction transitionFunction;
-    protected final String name;
     private HierarchicalStateMachine start;
     private final boolean resets;
-
-    public String getName() {
-        return name + "." + current.getName();
-    }
 
     private class TransitionFunction {
         public class Element{
@@ -122,22 +117,17 @@ public class HierarchicalStateMachine {
         void call();
     }
 
-    public HierarchicalStateMachine(String name) {
-        this(name, true);
+    public HierarchicalStateMachine() {
+        this(true);
     }
 
-    public HierarchicalStateMachine(String name, boolean resets){
+    public HierarchicalStateMachine(boolean resets){
         this.resets = resets;
         transitionFunction = new TransitionFunction();
-        this.name = name;
     }
 
     public HierarchicalStateMachine getCurrent() {
         return current;
-    }
-
-    public void setCurrent(HierarchicalStateMachine current) {
-        this.current = current;
     }
 
     public void transition(String input){
@@ -185,7 +175,6 @@ public class HierarchicalStateMachine {
         return "HierarchicalStateMachine{" +
                 "current=" + current +
                 ", transitionFunction=" + transitionFunction +
-                ", name='" + name + '\'' +
                 ", start=" + start +
                 ", resets=" + resets +
                 '}';

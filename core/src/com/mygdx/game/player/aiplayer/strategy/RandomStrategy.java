@@ -32,7 +32,6 @@ public class RandomStrategy implements Strategy{
                     int posX = unit.getPositionX() + x;
                     int posY = unit.getPositionY() + y;
                     int distance = range.getDistance(posX, posY);
-                    System.out.println(distance);
                     if (distance >= 0 && distance < Integer.MAX_VALUE){
                         reachable.add(new Point(posX, posY));
                     }
@@ -40,7 +39,6 @@ public class RandomStrategy implements Strategy{
             }
             Random random = new Random();
             if (reachable.size() > 0) {
-                System.out.println(reachable);
                 current.setStep(new MoveStep(unit, reachable.get(random.nextInt(reachable.size()))));
                 parent.addSubPlans(new LinkedList<>(Collections.singleton(current)));
                 parent = current;

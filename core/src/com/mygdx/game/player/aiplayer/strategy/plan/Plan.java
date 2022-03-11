@@ -89,19 +89,16 @@ public class Plan{
         planTree.subTrees = list;
     }
 
+    public void evaluateConditions(){
+        planTree = planTree.matchingSubTree();
+    }
+
     public boolean executeNext(PlanExecutor executor){
         if (planTree != null){
             executor.execute(planTree.step);
-            planTree = planTree.matchingSubTree();
+            //planTree = planTree.matchingSubTree();
         }
         return planTree != null;
-    }
-
-    public void executeForAll(PlanExecutor executor){
-        while (planTree != null){
-            executor.execute(planTree.step);
-            planTree = planTree.matchingSubTree();
-        }
     }
 
     public String prettyPrint(){

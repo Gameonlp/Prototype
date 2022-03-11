@@ -3,9 +3,12 @@ package com.mygdx.game.units.weapons;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.utils.GdxRuntimeException;
+import com.mygdx.game.BattleSoundMessage;
+import com.mygdx.game.MessageQueue;
 import com.mygdx.game.player.Player;
 import com.mygdx.game.units.Selector;
 import com.mygdx.game.units.Unit;
+import com.mygdx.game.util.SoundFunction;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -34,11 +37,17 @@ public class Sword extends Weapon{
     @Override
     public void dealDamage(Unit user, Unit target) {
         target.reduceHealth(baseDamage + random.nextInt(damageRange + 1));
-        try {
-            sounds.get(sounds.size() - 1 - random.nextInt(sounds.size())).play();
-        } catch (IndexOutOfBoundsException e){
-            // Asset did not exist
-        }
+    }
+
+    @Override
+    public SoundFunction getAttackSound() {
+        return () -> {
+            try {
+                sounds.get(sounds.size() - 1 - random.nextInt(sounds.size())).play();
+            } catch (IndexOutOfBoundsException e){
+                // Asset did not exist
+            }
+        };
     }
 
     @Override

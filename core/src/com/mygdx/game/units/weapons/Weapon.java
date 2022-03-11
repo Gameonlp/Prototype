@@ -3,6 +3,7 @@ package com.mygdx.game.units.weapons;
 import com.mygdx.game.player.Player;
 import com.mygdx.game.units.Selector;
 import com.mygdx.game.units.Unit;
+import com.mygdx.game.util.SoundFunction;
 
 public abstract class Weapon {
     private final int minDistance;
@@ -22,6 +23,8 @@ public abstract class Weapon {
     public int getMinDistance() {
         return minDistance;
     }
+
+    public abstract SoundFunction getAttackSound();
 
     public abstract void destroy();
 
