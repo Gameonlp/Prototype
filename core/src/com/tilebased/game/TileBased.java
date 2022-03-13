@@ -11,9 +11,11 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Logger;
 import com.badlogic.gdx.utils.Queue;
+import com.badlogic.gdx.utils.Scaling;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.FillViewport;
 import com.badlogic.gdx.utils.viewport.FitViewport;
+import com.badlogic.gdx.utils.viewport.ScalingViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 import com.tilebased.game.logic.GameHandler;
 import com.tilebased.game.logic.HierarchicalStateMachine;
@@ -113,7 +115,7 @@ public class TileBased extends ApplicationAdapter implements InputProcessor {
 		loc = new ClickLocation();
 
 		camera = new OrthographicCamera();
-		viewport = new FitViewport(Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), camera);
+		viewport = new ScalingViewport(Scaling.fit, 1920, 1080, camera);
 		viewport.setScreenBounds(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 		viewport.apply();
 		camera.position.set(camera.viewportWidth/2,camera.viewportHeight/2,0);
