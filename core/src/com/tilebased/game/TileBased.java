@@ -195,7 +195,6 @@ public class TileBased extends ApplicationAdapter implements InputProcessor {
 	@Override
 	public boolean touchDown(int screenX, int screenY, int pointer, int button) {
 		Vector3 vec = camera.unproject(new Vector3(screenX, screenY, 0));
-		System.out.println(vec + " " + screenY);
 		lastClick = new int[]{(int) vec.x, (int) vec.y, pointer, button};
 		return false;
 	}
