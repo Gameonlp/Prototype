@@ -4,11 +4,17 @@ import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.InputProcessor;
+import com.badlogic.gdx.graphics.Camera;
+import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Logger;
 import com.badlogic.gdx.utils.Queue;
 import com.badlogic.gdx.utils.ScreenUtils;
+import com.badlogic.gdx.utils.viewport.FillViewport;
+import com.badlogic.gdx.utils.viewport.FitViewport;
+import com.badlogic.gdx.utils.viewport.Viewport;
 import com.tilebased.game.logic.GameHandler;
 import com.tilebased.game.logic.HierarchicalStateMachine;
 import com.tilebased.game.logic.State;
@@ -37,6 +43,9 @@ public class TileBased extends ApplicationAdapter implements InputProcessor {
 	private final HierarchicalStateMachine game;
 	private final HierarchicalStateMachine editor;
 	private final State exit;
+
+	OrthographicCamera camera;
+	private Viewport viewport;
 
 	int[] lastClick;
 	int[] mousePos;
@@ -102,11 +111,19 @@ public class TileBased extends ApplicationAdapter implements InputProcessor {
 
 		lastKeys = new Queue<>();
 		loc = new ClickLocation();
+
+		camera = new OrthographicCamera();
+		viewport = new FitViewport(Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), camera);
+		viewport.setScreenBounds(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+		viewport.apply();
+		camera.position.set(camera.viewportWidth/2,camera.viewportHeight/2,0);
 	}
 
 	@Override
 	public void render () {
 		ScreenUtils.clear(0, 0, 0, 1);
+		camera.update();
+		batch.setProjectionMatrix(camera.combined);
 		batch.begin();
 		if (loading.equals(gameState.getCurrent())) {
 			//TODO load anything here
@@ -177,7 +194,9 @@ public class TileBased extends ApplicationAdapter implements InputProcessor {
 
 	@Override
 	public boolean touchDown(int screenX, int screenY, int pointer, int button) {
-		lastClick = new int[]{screenX, screenY, pointer, button};
+		Vector3 vec = camera.unproject(new Vector3(screenX, screenY, 0));
+		System.out.println(vec + " " + screenY);
+		lastClick = new int[]{(int) vec.x, (int) vec.y, pointer, button};
 		return false;
 	}
 
@@ -193,7 +212,8 @@ public class TileBased extends ApplicationAdapter implements InputProcessor {
 
 	@Override
 	public boolean mouseMoved(int screenX, int screenY) {
-		mousePos = new int[]{screenX, screenY};
+		Vector3 vec = camera.unproject(new Vector3(screenX, screenY, 0));
+		mousePos = new int[]{(int) vec.x, (int) vec.y};
 		return false;
 	}
 

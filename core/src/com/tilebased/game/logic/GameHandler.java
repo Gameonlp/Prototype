@@ -245,15 +245,15 @@ public class GameHandler {
                 handleGameDefault(batch, lastClick, mousePos);
                 lastClick = null;
             } else if (gameState.getStateByName("game").getStateByName("inMap").getStateByName("selected").equals(gameState.getCurrent().getCurrent().getCurrent())){
-                if (primarySelection.getOwner() == currentPlayer && currentPlayer.getPlayerType() == Player.PlayerType.HUMAN && range.getDistance(lastClick[0] / 64, (1080 - lastClick[1]) / 64) >= 0
-                        && range.getDistance(lastClick[0] / 64, (1080 - lastClick[1]) / 64) < Integer.MAX_VALUE
+                if (primarySelection.getOwner() == currentPlayer && currentPlayer.getPlayerType() == Player.PlayerType.HUMAN && range.getDistance(lastClick[0] / 64, lastClick[1] / 64) >= 0
+                        && range.getDistance(lastClick[0] / 64, lastClick[1] / 64) < Integer.MAX_VALUE
                         && lastClick[3] == Input.Buttons.LEFT) {
                     range = null;
-                    targetPoint = new Point(lastClick[0] / 64, (1080 - lastClick[1]) / 64);
+                    targetPoint = new Point(lastClick[0] / 64, lastClick[1] / 64);
                     lastClick = null;
                     gameState.transition("click");
-                } else if (range.getDistance(lastClick[0] / 64, (1080 - lastClick[1]) / 64) >= 0
-                        && range.getDistance(lastClick[0] / 64, (1080 - lastClick[1]) / 64) < Integer.MAX_VALUE
+                } else if (range.getDistance(lastClick[0] / 64, lastClick[1] / 64) >= 0
+                        && range.getDistance(lastClick[0] / 64, lastClick[1] / 64) < Integer.MAX_VALUE
                         && lastClick[3] == Input.Buttons.RIGHT){
                     range = null;
                     path.destroy();
@@ -262,9 +262,9 @@ public class GameHandler {
                     gameState.transition("cancel");
                 }
             } else if (inMap.getStateByName("chooseTarget").equals(gameState.getCurrent().getCurrent().getCurrent())){
-                Unit unit = unitPositions.get(new Point(lastClick[0] / 64, (1080 - lastClick[1]) / 64));
-                if (primarySelection.getOwner() == currentPlayer && unit != null && selector.select(unit) && range.getDistance(lastClick[0] / 64, (1080 - lastClick[1]) / 64) >= 0
-                        && range.getDistance(lastClick[0] / 64, (1080 - lastClick[1]) / 64) < Integer.MAX_VALUE
+                Unit unit = unitPositions.get(new Point(lastClick[0] / 64, lastClick[1] / 64));
+                if (primarySelection.getOwner() == currentPlayer && unit != null && selector.select(unit) && range.getDistance(lastClick[0] / 64, lastClick[1] / 64) >= 0
+                        && range.getDistance(lastClick[0] / 64, lastClick[1] / 64) < Integer.MAX_VALUE
                         && lastClick[3] == Input.Buttons.LEFT) {
                     gameState.transition("battle");
                     selector = null;
@@ -457,7 +457,7 @@ public class GameHandler {
     }
 
     private Point clickedTile(int[] lastClick){
-        return new Point(lastClick[0] / 64, currentMap.getHeight() - lastClick[1] / 64 - 1);
+        return new Point(lastClick[0] / 64, lastClick[1] / 64);
     }
 
     public void renderGame(SpriteBatch batch, Range range, Color color, Selector selector, int[] mousePos){
@@ -507,7 +507,7 @@ public class GameHandler {
         }
 
         if (range != null && path != null && mousePos != null) {
-            Point mousePoint = new Point(mousePos[0] / 64, (1080 - mousePos[1]) / 64);
+            Point mousePoint = new Point(mousePos[0] / 64, mousePos[1] / 64);
             path.addPoint(mousePoint);
             path.draw(batch);
         }
