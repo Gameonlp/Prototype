@@ -7,15 +7,19 @@ import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.utils.Logger;
+import com.badlogic.gdx.utils.Queue;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.tilebased.game.logic.GameHandler;
 import com.tilebased.game.logic.HierarchicalStateMachine;
 import com.tilebased.game.logic.State;
+import com.tilebased.game.util.ClickLocation;
 
 public class TileBased extends ApplicationAdapter implements InputProcessor {
 	private static final Logger LOGGER = new Logger(TileBased.class.getName());
 
 	private final SettingsManager settings = SettingsManager.getInstance();
+
+	private ClickLocation loc;
 
 	SpriteBatch batch;
 
@@ -36,42 +40,50 @@ public class TileBased extends ApplicationAdapter implements InputProcessor {
 
 	int[] lastClick;
 	int[] mousePos;
+	private Queue<Integer> lastKeys;
 
 	public TileBased(){
 		gameState = new HierarchicalStateMachine("gameState");
 		loading = new State("loading");
 		mainMenu = new State("mainMenu");
 		game = new HierarchicalStateMachine(false, "game");
-		State gameDefault = new State("gameDefault");
-		State gameSelected = new State("gameSelected");
-		State gameMove = new State("gameMove");
-		State gameContextMenu = new State("gameContextMenu");
-		State gameChooseTarget = new State("gameChooseTarget");
-		State gameBattle = new State("gameBattle");
-		State gameTurnEnd = new State("gameTurnEnd");
-		State gameTurnStart = new State("gameTurnStart");
+		State gameLoading = new State("loading");
+		HierarchicalStateMachine inMap = new HierarchicalStateMachine(false, "inMap");
+		State inMapDefault = new State("default");
+		State inMapSelected = new State("selected");
+		State inMapMove = new State("move");
+		State inMapContextMenu = new State("contextMenu");
+		State inMapChooseTarget = new State("chooseTarget");
+		State inMapBattle = new State("battle");
+		State inMapTurnEnd = new State("turnEnd");
+		State inMapTurnStart = new State("turnStart");
+		State inMapMenu = new State("menu");
 		editor = new HierarchicalStateMachine(false, "editor");
 		exit = new State("exit");
 		gameState.addTransition(loading, "loaded", mainMenu);
 		gameState.addTransition(mainMenu, "start", game);
 		gameState.addTransition(mainMenu, "edit", editor);
-		gameState.addTransition(game, "toMenu", mainMenu);
-		game.addTransition(gameDefault, "click", gameSelected);
-		game.addTransition(gameDefault, "endTurn", gameTurnEnd);
-		game.addTransition(gameDefault, "context", gameContextMenu);
-		game.addTransition(gameSelected, "click", gameMove);
-		game.addTransition(gameSelected, "cancel", gameDefault);
-		game.addTransition(gameMove, "finished", gameDefault);
-		game.addTransition(gameContextMenu, "close", gameDefault);
-		game.addTransition(gameContextMenu, "endTurn", gameTurnEnd);
-		game.addTransition(gameContextMenu, "target", gameChooseTarget);
-		game.addTransition(gameChooseTarget, "close", gameDefault);
-		game.addTransition(gameChooseTarget, "battle", gameBattle);
-		game.addTransition(gameBattle, "finished", gameDefault);
-		game.addTransition(gameTurnEnd, "nextTurn", gameTurnStart);
-		game.addTransition(gameTurnStart, "start", gameDefault);
-		game.setStart(gameTurnStart);
-		gameState.addTransition(editor, "toMenu", mainMenu);
+		gameState.addTransition(game, "toMainMenu", this::call, mainMenu);
+		game.addTransition(gameLoading, "loaded", inMap);
+		game.addTransition(inMap,"toMenu", inMapMenu);
+		game.addTransition(inMapMenu,"back", inMap);
+		game.setStart(gameLoading);
+		inMap.addTransition(inMapDefault, "click", inMapSelected);
+		inMap.addTransition(inMapDefault, "endTurn", inMapTurnEnd);
+		inMap.addTransition(inMapDefault, "context", inMapContextMenu);
+		inMap.addTransition(inMapSelected, "click", inMapMove);
+		inMap.addTransition(inMapSelected, "cancel", inMapDefault);
+		inMap.addTransition(inMapMove, "finished", inMapDefault);
+		inMap.addTransition(inMapContextMenu, "close", inMapDefault);
+		inMap.addTransition(inMapContextMenu, "endTurn", inMapTurnEnd);
+		inMap.addTransition(inMapContextMenu, "target", inMapChooseTarget);
+		inMap.addTransition(inMapChooseTarget, "close", inMapDefault);
+		inMap.addTransition(inMapChooseTarget, "battle", inMapBattle);
+		inMap.addTransition(inMapBattle, "finished", inMapDefault);
+		inMap.addTransition(inMapTurnEnd, "nextTurn", inMapTurnStart);
+		inMap.addTransition(inMapTurnStart, "start", inMapDefault);
+		inMap.setStart(inMapTurnStart);
+		gameState.addTransition(editor, "toMainMenu", mainMenu);
 		gameState.addTransition(mainMenu, "exit", exit);
 		gameState.setStart(loading);
 	}
@@ -87,6 +99,9 @@ public class TileBased extends ApplicationAdapter implements InputProcessor {
 
 		Gdx.input.setInputProcessor(this);
 		LOGGER.setLevel(Logger.DEBUG);
+
+		lastKeys = new Queue<>();
+		loc = new ClickLocation();
 	}
 
 	@Override
@@ -98,16 +113,16 @@ public class TileBased extends ApplicationAdapter implements InputProcessor {
 			gameState.transition("loaded");
 		} else if (mainMenu.equals(gameState.getCurrent())) {
 			if (lastClick != null && lastClick[3] == Input.Buttons.LEFT) {
-				if (clickInBoundingBox(lastClick, 660, 1260, 900, 800)) {
+				if (loc.clickInBoundingBox(lastClick, 660, 1260, 900, 800)) {
 					gameState.transition("start");
 				}
-				else if (clickInBoundingBox(lastClick, 660, 1260, 750, 650)) {
+				else if (loc.clickInBoundingBox(lastClick, 660, 1260, 750, 650)) {
 					//gameState.transition("edit");
 				}
-				else if (clickInBoundingBox(lastClick, 660, 1260, 600, 500)) {
+				else if (loc.clickInBoundingBox(lastClick, 660, 1260, 600, 500)) {
 					//gameState.transition("config");
 				}
-				else if (clickInBoundingBox(lastClick, 660, 1260, 450, 350)) {
+				else if (loc.clickInBoundingBox(lastClick, 660, 1260, 450, 350)) {
 					gameState.transition("exit");
 				}
 			}
@@ -117,16 +132,12 @@ public class TileBased extends ApplicationAdapter implements InputProcessor {
 			if (gameHandler == null) {
 				gameHandler = new GameHandler(gameState);
 			}
-			gameHandler.handleGame(batch, lastClick, mousePos);
+			gameHandler.handleGame(batch, lastClick, mousePos, lastKeys);
 		} else if (exit.equals(gameState.getCurrent())) {
 			Gdx.app.exit();
 		}
 		lastClick = null;
 		batch.end();
-	}
-
-	private boolean clickInBoundingBox(int[] lastClick, int left, int right, int top, int bottom){
-		return lastClick[0] >= left && lastClick[0] <= right && lastClick[1] >= 1080 - top && lastClick[1] <= 1080 - bottom;
 	}
 
 	private void renderMenu() {
@@ -155,6 +166,7 @@ public class TileBased extends ApplicationAdapter implements InputProcessor {
 
 	@Override
 	public boolean keyUp(int keycode) {
+		lastKeys.addLast(keycode);
 		return false;
 	}
 
@@ -188,5 +200,10 @@ public class TileBased extends ApplicationAdapter implements InputProcessor {
 	@Override
 	public boolean scrolled(float amountX, float amountY) {
 		return false;
+	}
+
+	private void call() {
+		gameHandler.destroy();
+		gameHandler = null;
 	}
 }

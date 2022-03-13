@@ -188,10 +188,16 @@ public class HierarchicalStateMachine {
         transitionFunction.addTransition(source, input, guard, action, goal);
     }
 
+    public void reset(){
+        this.current = start;
+        states.values().forEach(HierarchicalStateMachine::reset);
+    }
+
     @Override
     public String toString() {
         return "HierarchicalStateMachine{" +
-                "current=" + current +
+                "name=" + name +
+                ", current=" + current +
                 ", transitionFunction=" + transitionFunction +
                 ", start=" + start +
                 ", resets=" + resets +

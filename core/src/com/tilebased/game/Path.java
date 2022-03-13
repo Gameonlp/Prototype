@@ -48,6 +48,9 @@ public class Path {
     }
 
     public void addPoint(Point mousePoint){
+        if (mousePoint == null){
+            return;
+        }
         int distance = range.getDistance(mousePoint);
         for (int i = 0; path != null && i <= path.length; i++) {
             if (!mousePoint.equals(path[0]) && !(distance >= 0 && (distance < Integer.MAX_VALUE || unitPositions.containsKey(mousePoint) && unitPositions.get(mousePoint).getOwner().equals(owner)))) {
@@ -86,7 +89,6 @@ public class Path {
             current = toCheck.poll();
             currentPoint = current.get(0);
             if (currentPoint.getPoint().equals(path[0])){
-                System.out.println(current);
                 for (int i = 0; i < current.size(); i++) {
                     path[i] = current.get(i).getPoint();
                 }

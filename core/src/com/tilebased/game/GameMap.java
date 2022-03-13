@@ -22,14 +22,14 @@ public class GameMap {
     private final int height;
     private final int width;
 
-    private static final Tile[] tileAtlas = new Tile[256];
+    private static final Tile.TileData[] tileAtlas = new Tile.TileData[256];
     private static final HashMap<String, Color> colorMap = new HashMap<>();
     private static final HashMap<String, Player.PlayerType> playerTypeMap = new HashMap<>();
 
     static {
-        tileAtlas[0] = new Tile("textures/Black.png",false, false, false, false);
-        tileAtlas[1] = new Tile("textures/Grey.png",false, false, false, false);
-        tileAtlas[2] = new Tile("textures/Tile.png",true, false, false, false);
+        tileAtlas[0] = new Tile.TileData("textures/Black.png",false, false, false, false);
+        tileAtlas[1] = new Tile.TileData("textures/Grey.png",false, false, false, false);
+        tileAtlas[2] = new Tile.TileData("textures/Tile.png",true, false, false, false);
 
         colorMap.put("blue", Color.BLUE);
         colorMap.put("red", Color.RED);
@@ -86,7 +86,7 @@ public class GameMap {
                     case 0: {
                         String[] entries = line.split(",");
                         for (int i = 0; i < width; i++) {
-                            Tile tile = tileAtlas[Integer.parseInt(entries[i])];
+                            Tile tile = new Tile(tileAtlas[Integer.parseInt(entries[i])]);
                             map[width * lineNumber + i] = tile;
                         }
                         lineNumber++;
