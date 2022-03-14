@@ -13,14 +13,14 @@ import com.badlogic.gdx.utils.Logger;
 import com.badlogic.gdx.utils.Queue;
 import com.badlogic.gdx.utils.Scaling;
 import com.badlogic.gdx.utils.ScreenUtils;
-import com.badlogic.gdx.utils.viewport.FillViewport;
-import com.badlogic.gdx.utils.viewport.FitViewport;
-import com.badlogic.gdx.utils.viewport.ScalingViewport;
+import com.badlogic.gdx.utils.viewport.ExtendViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 import com.tilebased.game.logic.GameHandler;
 import com.tilebased.game.logic.HierarchicalStateMachine;
 import com.tilebased.game.logic.State;
 import com.tilebased.game.util.ClickLocation;
+
+import java.util.Arrays;
 
 public class TileBased extends ApplicationAdapter implements InputProcessor {
 	private static final Logger LOGGER = new Logger(TileBased.class.getName());
@@ -115,7 +115,7 @@ public class TileBased extends ApplicationAdapter implements InputProcessor {
 		loc = new ClickLocation();
 
 		camera = new OrthographicCamera();
-		viewport = new ScalingViewport(Scaling.fit, 1920, 1080, camera);
+		viewport = new ExtendViewport(1920, 1080, camera);
 		viewport.setScreenBounds(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 		viewport.apply();
 		camera.position.set(camera.viewportWidth/2,camera.viewportHeight/2,0);
@@ -221,6 +221,12 @@ public class TileBased extends ApplicationAdapter implements InputProcessor {
 	@Override
 	public boolean scrolled(float amountX, float amountY) {
 		return false;
+	}
+
+	@Override
+	public void resize(int width, int height) {
+		viewport.update(width,height);
+		camera.position.set(camera.viewportWidth/2,camera.viewportHeight/2,0);
 	}
 
 	private void call() {
