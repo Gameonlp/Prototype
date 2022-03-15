@@ -9,12 +9,10 @@ public class DesktopLauncher {
 		Lwjgl3ApplicationConfiguration config = new Lwjgl3ApplicationConfiguration();
 		config.setForegroundFPS(60);
 		config.setIdleFPS(60);
-		//config.setDecorated(false);
-		//config.setWindowedMode(Lwjgl3ApplicationConfiguration.getDisplayMode().width, Lwjgl3ApplicationConfiguration.getDisplayMode().height);
-		// For some reason taskbar always draws and window gets shifted...
-		config.setFullscreenMode(Lwjgl3ApplicationConfiguration.getDisplayMode());
-		//config.setResizable(false);
+		config.setDecorated(false);
+		config.setWindowedMode(Lwjgl3ApplicationConfiguration.getDisplayMode().width, Lwjgl3ApplicationConfiguration.getDisplayMode().height);
+		config.setWindowPosition(0, 0);
+		config.setResizable(false);
 		config.setInitialVisible(true);
-		//config.setMaximized(true);
 		new Lwjgl3Application(new TileBased(), config);	}
 }
